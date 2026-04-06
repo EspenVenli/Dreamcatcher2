@@ -57,14 +57,14 @@ export default function App() {
     try {
       const dreamsRes = await fetch('/api/dreams');
       const dreams: Dream[] = await dreamsRes.json();
-      
+
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: `Generate a weekly dream synthesis for a user with the following profile and recent dreams.
         User Profile: ${JSON.stringify(user)}
         Recent Dreams: ${JSON.stringify(dreams.slice(0, 10))}
-        
+
         Provide a headline, patterns (with icons like Waves, Key, Sparkles, Moon, Sun, Wind), celestial alignment, shadow work, a collective whisper message, and a moodscape (title, image description, and 3 hex colors).`,
         config: {
           responseMimeType: "application/json",
@@ -101,7 +101,6 @@ export default function App() {
       });
 
       const result = JSON.parse(response.text);
-      // Ensure we have a valid image URL if the AI didn't provide a real one
       if (!result.moodscape.imageUrl || !result.moodscape.imageUrl.startsWith('http')) {
         result.moodscape.imageUrl = `https://picsum.photos/seed/${encodeURIComponent(result.moodscape.title)}/800/600?blur=2`;
       }
@@ -124,8 +123,18 @@ export default function App() {
     setCurrentScreen('onboarding');
   };
 
-  const handleOnboardingComplete = (data: { age: number; starSign: string }) => {
+  const handleOnboardingComplete = async (data: UserProfile) => {
     setUser(data);
+    // Persist profile to backend
+    try {
+      await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } catch (e) {
+      console.error("Failed to save user profile", e);
+    }
     setCurrentScreen('whisper');
   };
 
@@ -140,10 +149,9 @@ export default function App() {
     setCurrentScreen('analysis');
 
     try {
-      // 2. Call Gemini for Analysis and Cleaning
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: `Analyze this dream transcript. Provide a title, a cleaned-up narrative version, and a psychological analysis.
         Transcript: ${currentTranscript}`,
         config: {
@@ -182,7 +190,6 @@ export default function App() {
       setCurrentDream(newDream);
     } catch (error) {
       console.error("Analysis failed:", error);
-      // Fallback to mock if API fails
       setCurrentDream({
         ...MOCK_DREAM,
         id: Date.now().toString(),
@@ -195,7 +202,7 @@ export default function App() {
 
   const handleSaveDream = async () => {
     if (!currentDream) return;
-    
+
     try {
       await fetch('/api/dreams', {
         method: 'POST',
@@ -214,15 +221,15 @@ export default function App() {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-8">
           <motion.div
-            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+            animate={{ rotate: 360, scale: [1, 1.15, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             className="text-primary"
           >
-            <Sparkles size={64} />
+            <Sparkles size={56} />
           </motion.div>
           <div className="text-center space-y-2">
             <h2 className="font-serif text-2xl text-primary italic">Deepening Analysis</h2>
-            <p className="text-on-surface-variant text-sm animate-pulse">Consulting the collective whisper...</p>
+            <p className="text-on-surface-variant text-sm animate-pulse opacity-70">Consulting the collective whisper...</p>
           </div>
         </div>
       );
@@ -240,10 +247,14 @@ export default function App() {
       case 'dream-detail':
         return <DreamDetail dream={currentDream || MOCK_DREAM} />;
       case 'dreams-list':
-        return <DreamsList onSelectDream={(dream) => {
-          setCurrentDream(dream);
-          setCurrentScreen('dream-detail');
-        }} />;
+        return (
+          <DreamsList
+            onSelectDream={dream => {
+              setCurrentDream(dream);
+              setCurrentScreen('dream-detail');
+            }}
+          />
+        );
       case 'analysis':
         return currentDream ? <Analysis dream={currentDream} onSave={handleSaveDream} /> : null;
       case 'transcription':
@@ -260,14 +271,28 @@ export default function App() {
       return { showTopNav: false, showBottomNav: false };
     }
     if (currentScreen === 'onboarding') {
-      return { showTopNav: true, showBottomNav: false, title: 'Lucid Journey' };
+      return { showTopNav: true, showBottomNav: false, title: 'Getting Started' };
     }
-    if (currentScreen === 'dream-detail' || currentScreen === 'analysis' || currentScreen === 'you' || currentScreen === 'transcription') {
-      return { 
-        showTopNav: true, 
-        showBottomNav: currentScreen === 'you', 
-        title: currentScreen === 'you' ? 'Profile' : currentScreen === 'transcription' ? 'Transcription' : 'Lucid Journey', 
-        onClose: currentScreen === 'you' ? undefined : () => setCurrentScreen(currentScreen === 'analysis' ? 'whisper' : currentScreen === 'transcription' ? 'whisper' : 'dreams-list') 
+    if (
+      currentScreen === 'dream-detail' ||
+      currentScreen === 'analysis' ||
+      currentScreen === 'you' ||
+      currentScreen === 'transcription'
+    ) {
+      return {
+        showTopNav: true,
+        showBottomNav: currentScreen === 'you',
+        title:
+          currentScreen === 'you'         ? 'Profile'
+          : currentScreen === 'transcription' ? 'Review Dream'
+          : 'Dream Analysis',
+        onClose:
+          currentScreen === 'you' ? undefined
+          : () => setCurrentScreen(
+              currentScreen === 'analysis' || currentScreen === 'transcription'
+                ? 'whisper'
+                : 'dreams-list'
+            )
       };
     }
     return { showTopNav: true, showBottomNav: true };
@@ -282,10 +307,10 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentScreen + (isAnalyzing ? '-analyzing' : '')}
-          initial={{ opacity: 0, x: 10 }}
+          initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -10 }}
-          transition={{ duration: 0.3 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.25 }}
           className="h-full"
         >
           {renderScreen()}

@@ -8,7 +8,16 @@ export interface WeeklySynthesis {
   moodscape: { title: string; imageUrl: string; colors: string[] };
 }
 
-export type Screen = 'login' | 'onboarding' | 'whisper' | 'insights' | 'dream-detail' | 'dreams-list' | 'analysis' | 'you' | 'transcription';
+export type Screen =
+  | 'login'
+  | 'onboarding'
+  | 'whisper'
+  | 'insights'
+  | 'dream-detail'
+  | 'dreams-list'
+  | 'analysis'
+  | 'you'
+  | 'transcription';
 
 export interface Dream {
   id: string;
@@ -28,8 +37,35 @@ export interface Dream {
   duration?: number;
 }
 
+export type DreamGoal =
+  | 'track-recurring'
+  | 'explore-symbols'
+  | 'process-emotions'
+  | 'improve-lucidity'
+  | 'understand-patterns'
+  | 'just-curious';
+
+export type DreamRecallFrequency = 'rarely' | 'sometimes' | 'often' | 'almost-always';
+
+export type EmotionalTone =
+  | 'peaceful'
+  | 'anxious'
+  | 'adventurous'
+  | 'melancholic'
+  | 'surreal'
+  | 'vivid';
+
 export interface UserProfile {
   age?: number;
   starSign?: string;
   email?: string;
+  // Onboarding step 2 — goals
+  goals?: DreamGoal[];
+  // Onboarding step 3 — dream landscape
+  recurringDreams?: string;
+  typicalMoods?: EmotionalTone[];
+  // Onboarding step 4 — sleep schedule
+  bedtime?: string;
+  wakeTime?: string;
+  dreamRecall?: DreamRecallFrequency;
 }

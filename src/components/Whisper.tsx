@@ -1,244 +1,298 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Sparkles, Settings2, Smile, Send, RotateCcw } from 'lucide-react';
+import { Mic, Send, RotateCcw, MicOff, Moon } from 'lucide-react';
 
 interface WhisperProps {
   onSend: (duration: number, transcript: string) => void;
 }
 
+type State = 'idle' | 'recording' | 'done';
+
 export default function Whisper({ onSend }: WhisperProps) {
-  const [isRecording, setIsRecording] = useState(false);
+  const [state, setState] = useState<State>('idle');
   const [timer, setTimer] = useState(0);
-  const [hasRecorded, setHasRecorded] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [recognition, setRecognition] = useState<any>(null);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const recognitionRef = useRef<any>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const finalTranscriptRef = useRef('');
 
   useEffect(() => {
-    // Initialize SpeechRecognition
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = true;
-      recognitionInstance.interimResults = true;
-      recognitionInstance.lang = 'en-US';
-
-      recognitionInstance.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
-          }
-        }
-        setTranscript(prev => prev + finalTranscript);
-      };
-
-      recognitionInstance.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-      };
-
-      setRecognition(recognitionInstance);
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setSpeechSupported(false);
+      return;
     }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-US';
+
+    rec.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      setTranscript(finalTranscriptRef.current + interim);
+    };
+
+    rec.onerror = (event: any) => {
+      if (event.error !== 'no-speech') {
+        console.error('Speech recognition error:', event.error);
+        stopRecording();
+      }
+    };
+
+    rec.onend = () => {
+      if (state === 'recording') {
+        // Auto-restart if still meant to be recording
+        try { rec.start(); } catch {}
+      }
+    };
+
+    recognitionRef.current = rec;
+
+    return () => {
+      rec.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-      recognition?.start();
-    } else {
-      recognition?.stop();
-    }
-    return () => {
-      clearInterval(interval);
-      recognition?.stop();
-    };
-  }, [isRecording, recognition]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const startRecording = () => {
+    finalTranscriptRef.current = '';
+    setTranscript('');
+    setTimer(0);
+    setState('recording');
+    try { recognitionRef.current?.start(); } catch {}
+    timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
   };
 
-  const handleToggleRecording = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setHasRecorded(true);
-    } else {
-      setTimer(0);
-      setTranscript('');
-      setIsRecording(true);
-      setHasRecorded(false);
-    }
+  const stopRecording = () => {
+    recognitionRef.current?.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setState('done');
   };
 
   const handleReset = () => {
-    setTimer(0);
+    finalTranscriptRef.current = '';
     setTranscript('');
-    setHasRecorded(false);
-    setIsRecording(false);
+    setTimer(0);
+    setState('idle');
   };
 
   const handleSend = () => {
-    const finalTranscript = transcript || "I couldn't quite catch that. Maybe the dream was too elusive?";
-    onSend(timer, finalTranscript);
+    const finalText = transcript.trim() || "The dream slipped away before I could catch it...";
+    onSend(timer, finalText);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-between px-6 py-12 relative overflow-hidden">
-      {/* Instructional Header */}
-      <div className="text-center mt-8 mb-8">
-        <p className="text-[10px] text-on-surface-variant font-medium tracking-[0.2em] uppercase mb-4 opacity-60">
-          Session
-        </p>
-        <h2 className="font-serif text-4xl md:text-5xl text-on-surface leading-tight">
-          Whisper your <br />
-          night landscape
-        </h2>
-      </div>
+    <div className="min-h-full flex flex-col px-6 py-10 relative overflow-hidden">
 
-      {/* Visualizer / Stream Area */}
-      <div className="w-full max-w-md h-48 flex flex-col items-center justify-center relative">
-        <div className="flex items-end gap-[3px] h-32">
-          {[...Array(32)].map((_, i) => (
+      {/* Header */}
+      <motion.div
+        className="text-center mb-10 mt-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <p className="text-[10px] text-on-surface-variant font-medium tracking-[0.25em] uppercase mb-3 opacity-50">
+          Dream Capture
+        </p>
+        <h2 className="font-serif text-4xl text-on-surface leading-tight">
+          Whisper your<br />night landscape
+        </h2>
+        <p className="text-on-surface-variant/60 text-sm font-sans mt-3 max-w-xs mx-auto">
+          {state === 'idle'
+            ? 'Speak freely — describe everything you remember'
+            : state === 'recording'
+            ? 'Recording... speak at your own pace'
+            : 'Review your dream before sending for analysis'}
+        </p>
+      </motion.div>
+
+      {/* Waveform visualizer */}
+      <div className="w-full flex justify-center mb-8">
+        <div className="flex items-end gap-[3px] h-16">
+          {[...Array(36)].map((_, i) => (
             <motion.div
               key={i}
-              animate={isRecording ? {
-                height: [20, Math.random() * 100 + 20, 20],
+              animate={state === 'recording' ? {
+                height: [8, Math.random() * 52 + 8, 8],
               } : {
-                height: [12, 16, 12],
+                height: [4, 8, 4],
               }}
-              transition={isRecording ? {
-                duration: 0.5 + Math.random() * 0.5,
+              transition={state === 'recording' ? {
+                duration: 0.4 + (i % 5) * 0.08,
                 repeat: Infinity,
-                ease: "easeInOut",
+                ease: 'easeInOut',
+                delay: i * 0.02,
               } : {
-                duration: 2,
+                duration: 2.5,
                 repeat: Infinity,
-                delay: i * 0.05,
-                ease: "easeInOut",
+                delay: i * 0.06,
+                ease: 'easeInOut',
               }}
               className={`w-1 rounded-full transition-colors duration-500 ${
-                isRecording ? 'bg-primary shadow-[0_0_10px_rgba(168,133,238,0.5)]' : 'bg-on-surface-variant/20'
+                state === 'recording'
+                  ? 'bg-primary shadow-[0_0_6px_rgba(168,133,238,0.6)]'
+                  : 'bg-on-surface-variant/15'
               }`}
             />
           ))}
         </div>
-        
-        {!isRecording && !hasRecorded && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute bottom-[-2rem] text-[10px] font-sans uppercase tracking-[0.2em] text-on-surface-variant/40"
-          >
-            Ambient Silence
-          </motion.p>
-        )}
-        
-        {/* Ambient Light Source */}
-        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-primary/5 to-transparent blur-3xl -z-10" />
       </div>
 
-      {/* Central Record Button Section */}
-      <div className="relative flex flex-col items-center gap-8 mb-12 w-full">
-        <div className="relative flex items-center justify-center w-full">
-          {/* Ripple Effects */}
+      {/* Live transcript */}
+      <AnimatePresence>
+        {(state === 'recording' || state === 'done') && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8 mx-auto w-full max-w-md"
+          >
+            <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 relative">
+              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                {state === 'recording' && (
+                  <motion.div
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    className="w-2 h-2 rounded-full bg-primary"
+                  />
+                )}
+                <span className="text-[9px] uppercase tracking-wider text-on-surface-variant/40">
+                  {state === 'recording' ? 'Live' : 'Captured'}
+                </span>
+              </div>
+              <p className="font-serif text-sm text-on-surface/80 leading-relaxed italic pr-16 min-h-[3rem]">
+                {transcript || (
+                  <span className="text-on-surface-variant/30">Your words will appear here...</span>
+                )}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Record controls */}
+      <div className="flex flex-col items-center gap-6 mb-10">
+
+        {/* Ripples + Button */}
+        <div className="relative flex items-center justify-center">
           <AnimatePresence>
-            {isRecording && (
+            {state === 'recording' && (
               <>
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1.5, opacity: 0.1 }}
+                  key="ripple1"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1.6, opacity: 0.08 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute w-48 h-48 bg-primary rounded-full"
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                  className="absolute w-36 h-36 bg-primary rounded-full"
                 />
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 2, opacity: 0.05 }}
+                  key="ripple2"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 2.2, opacity: 0.04 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
-                  className="absolute w-64 h-64 bg-primary rounded-full"
+                  transition={{ duration: 3, repeat: Infinity, delay: 0.6, ease: 'easeOut' }}
+                  className="absolute w-36 h-36 bg-primary rounded-full"
                 />
               </>
             )}
           </AnimatePresence>
 
-          <div className="flex items-center gap-8 z-10">
-            {hasRecorded && !isRecording && (
-              <motion.button
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                onClick={handleReset}
-                className="w-14 h-14 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors"
-              >
-                <RotateCcw size={24} />
-              </motion.button>
-            )}
-
-            <button
-              onClick={handleToggleRecording}
-              className={`relative w-28 h-28 flex items-center justify-center rounded-full shadow-2xl transition-all duration-300 ${
-                isRecording
-                  ? 'bg-primary text-on-primary-container scale-110'
-                  : 'bg-gradient-to-br from-primary to-primary-container text-on-primary-container'
-              }`}
-            >
-              <Mic size={48} className={isRecording ? 'animate-pulse' : ''} />
-            </button>
-
-            {hasRecorded && !isRecording && (
-              <motion.button
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                onClick={handleSend}
-                className="w-14 h-14 flex items-center justify-center rounded-full bg-primary text-on-primary-container shadow-lg hover:scale-110 transition-all"
-              >
-                <Send size={24} />
-              </motion.button>
-            )}
-          </div>
+          <motion.button
+            onClick={state === 'recording' ? stopRecording : state === 'idle' ? startRecording : undefined}
+            whileTap={{ scale: 0.93 }}
+            className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
+              state === 'recording'
+                ? 'bg-primary scale-110 shadow-[0_0_32px_rgba(168,133,238,0.4)]'
+                : state === 'done'
+                ? 'bg-surface-container-highest opacity-50 cursor-default'
+                : 'bg-gradient-to-br from-primary to-primary-container hover:scale-105'
+            }`}
+          >
+            {state === 'recording'
+              ? <MicOff size={36} className="text-surface animate-pulse" />
+              : <Mic size={36} className="text-surface" />
+            }
+          </motion.button>
         </div>
 
-        <div className="flex flex-col items-center">
-          <span className="font-mono text-2xl text-primary font-bold tracking-widest">
+        {/* Timer */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-mono text-2xl text-primary font-bold tracking-widest tabular-nums">
             {formatTime(timer)}
           </span>
-          <span className="text-on-surface-variant/60 text-sm mt-2">
-            {isRecording ? 'Listening for symbols...' : hasRecorded ? 'Note captured. Send for analysis?' : 'Tap to start journey'}
+          <span className="text-on-surface-variant/50 text-xs uppercase tracking-wider">
+            {state === 'idle' ? 'Tap to begin' : state === 'recording' ? 'Tap to stop' : 'Recording complete'}
           </span>
         </div>
+
+        {/* Action buttons after recording */}
+        <AnimatePresence>
+          {state === 'done' && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="flex items-center gap-4 w-full max-w-xs"
+            >
+              <button
+                onClick={handleReset}
+                className="flex-1 h-12 flex items-center justify-center gap-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-container-highest transition-all text-xs uppercase tracking-wider font-medium"
+              >
+                <RotateCcw size={15} />
+                <span>Redo</span>
+              </button>
+              <button
+                onClick={handleSend}
+                className="flex-[2] h-12 flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-primary to-primary-container text-surface font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Send size={15} />
+                <span>Analyse Dream</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* No speech API warning */}
+        {!speechSupported && (
+          <div className="text-center text-on-surface-variant/60 text-xs max-w-xs">
+            <MicOff size={14} className="inline mr-1" />
+            Voice recording isn't supported in this browser. Try Chrome or Edge.
+          </div>
+        )}
       </div>
 
-      {/* Meta Context Cards (Asymmetric Bento) */}
-      <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-surface-container-low p-5 rounded-lg border border-outline-variant/10 flex flex-col gap-3"
-        >
-          <Settings2 className="text-tertiary" size={24} />
+      {/* Bottom info cards */}
+      <div className="mt-auto grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
+        <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 flex flex-col gap-2">
+          <Moon size={18} className="text-primary opacity-70" />
           <div>
-            <h3 className="text-sm font-bold text-on-surface">Lucidity Level</h3>
-            <p className="text-xs text-on-surface-variant opacity-70">Deep REM phase</p>
+            <h3 className="text-xs font-semibold text-on-surface">REM Capture</h3>
+            <p className="text-[11px] text-on-surface-variant/60 mt-0.5 leading-snug">Best recorded within 5 minutes of waking</p>
           </div>
-        </motion.div>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-surface-container-low p-5 rounded-lg border border-outline-variant/10 flex flex-col gap-3"
-        >
-          <Smile className="text-secondary" size={24} />
+        </div>
+        <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 flex flex-col gap-2">
+          <Mic size={18} className="text-secondary opacity-70" />
           <div>
-            <h3 className="text-sm font-bold text-on-surface">Emotional Tone</h3>
-            <p className="text-xs text-on-surface-variant opacity-70">Nostalgic / Calm</p>
+            <h3 className="text-xs font-semibold text-on-surface">No Editing Needed</h3>
+            <p className="text-[11px] text-on-surface-variant/60 mt-0.5 leading-snug">Speak naturally — AI will clean up the narrative</p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
