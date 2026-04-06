@@ -1,0 +1,5 @@
+{
+  "name": "Dreamcatcher",
+  "description": "A digital sanctuary for capturing and analyzing your subconscious journeys.",
+  "requestFramePermissions": ["microphone"]
+}

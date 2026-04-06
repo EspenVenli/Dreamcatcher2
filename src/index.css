@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif", serif;
+
+  --color-surface: #161212;
+  --color-on-surface: #eae0e0;
+  --color-on-surface-variant: #cbc3d3;
+  --color-primary: #d3bbff;
+  --color-primary-container: #a885ee;
+  --color-on-primary-container: #3d147d;
+  --color-secondary: #d6bee4;
+  --color-secondary-container: #523f5f;
+  --color-tertiary: #f0bd8b;
+  --color-surface-container-low: #1f1b1b;
+  --color-surface-container-high: #2d2929;
+  --color-surface-container-highest: #393433;
+  --color-outline-variant: #4a4551;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+}
+
+.glass-panel {
+  background: rgba(22, 18, 18, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.bloom-shadow {
+  box-shadow: 0 0 48px rgba(168, 133, 238, 0.12);
+}
+
+.text-glow {
+  text-shadow: 0 0 12px rgba(211, 187, 255, 0.4);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
