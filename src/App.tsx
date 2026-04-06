@@ -13,6 +13,7 @@ import DreamsList from './components/DreamsList';
 import Analysis from './components/Analysis';
 import You from './components/You';
 import Transcription from './components/Transcription';
+import { apiUrl } from './api';
 
 const MOCK_DREAM: Dream = {
   id: '1',
@@ -42,7 +43,7 @@ export default function App() {
   useEffect(() => {
     const fetchSynthesis = async () => {
       try {
-        const res = await fetch('/api/synthesis');
+        const res = await fetch(apiUrl('/api/synthesis'));
         const data = await res.json();
         if (data) setWeeklySynthesis(data);
       } catch (e) {
@@ -55,7 +56,7 @@ export default function App() {
   const handleGenerateSynthesis = async () => {
     setIsSynthesizing(true);
     try {
-      const dreamsRes = await fetch('/api/dreams');
+      const dreamsRes = await fetch(apiUrl('/api/dreams'));
       const dreams: Dream[] = await dreamsRes.json();
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -105,7 +106,7 @@ export default function App() {
         result.moodscape.imageUrl = `https://picsum.photos/seed/${encodeURIComponent(result.moodscape.title)}/800/600?blur=2`;
       }
 
-      const res = await fetch('/api/synthesis', {
+      const res = await fetch(apiUrl('/api/synthesis'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(result)
@@ -127,7 +128,7 @@ export default function App() {
     setUser(data);
     // Persist profile to backend
     try {
-      await fetch('/api/user/profile', {
+      await fetch(apiUrl('/api/user/profile'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -204,7 +205,7 @@ export default function App() {
     if (!currentDream) return;
 
     try {
-      await fetch('/api/dreams', {
+      await fetch(apiUrl('/api/dreams'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentDream)

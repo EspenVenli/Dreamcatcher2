@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Moon, Calendar, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { Dream } from '../types';
+import { apiUrl } from '../api';
 
 interface DreamsListProps {
   onSelectDream: (dream: Dream) => void;
@@ -12,7 +13,7 @@ export default function DreamsList({ onSelectDream }: DreamsListProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dreams')
+    fetch(apiUrl('/api/dreams'))
       .then(res => res.json())
       .then(data => {
         setDreams(data);
