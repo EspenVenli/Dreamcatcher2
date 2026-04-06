@@ -1,101 +1,232 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { User, Calendar, Stars, Settings, LogOut, Shield } from 'lucide-react';
-import { UserProfile } from '../types';
+import {
+  User, Calendar, Stars, Settings, LogOut,
+  Moon, Brain, Heart, Eye, BookOpen, Compass,
+  Clock, Zap, ChevronRight
+} from 'lucide-react';
+import { UserProfile, DreamGoal, EmotionalTone } from '../types';
 
 interface YouProps {
   user: UserProfile | null;
   onLogout: () => void;
 }
 
+const GOAL_LABELS: Record<DreamGoal, string> = {
+  'track-recurring':    'Track recurring dreams',
+  'explore-symbols':    'Explore symbolism',
+  'process-emotions':   'Process emotions',
+  'improve-lucidity':   'Improve lucid dreaming',
+  'understand-patterns':'Understand patterns',
+  'just-curious':       'Just curious',
+};
+
+const GOAL_ICONS: Record<DreamGoal, React.ElementType> = {
+  'track-recurring':    Moon,
+  'explore-symbols':    BookOpen,
+  'process-emotions':   Heart,
+  'improve-lucidity':   Eye,
+  'understand-patterns':Brain,
+  'just-curious':       Compass,
+};
+
+const MOOD_LABELS: Record<EmotionalTone, string> = {
+  'peaceful':    'Peaceful',
+  'anxious':     'Anxious',
+  'adventurous': 'Adventurous',
+  'melancholic': 'Melancholic',
+  'surreal':     'Surreal',
+  'vivid':       'Vivid',
+};
+
+const RECALL_LABELS: Record<string, string> = {
+  'rarely':        'Rarely',
+  'sometimes':     'Sometimes',
+  'often':         'Often',
+  'almost-always': 'Almost always',
+};
+
+function fmt12h(t?: string) {
+  if (!t) return '—';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
 export default function You({ user, onLogout }: YouProps) {
+  const hasGoals = user?.goals && user.goals.length > 0;
+  const hasMoods = user?.typicalMoods && user.typicalMoods.length > 0;
+
   return (
     <div className="pt-8 pb-32 px-6 max-w-md mx-auto space-y-8">
-      <header className="space-y-2">
-        <span className="text-primary font-sans text-xs uppercase tracking-widest opacity-80">
+      <header className="space-y-1">
+        <span className="text-primary font-sans text-xs uppercase tracking-widest opacity-70">
           Your Profile
         </span>
         <h1 className="font-serif text-4xl text-on-surface leading-tight">
-          The <span className="italic text-primary text-glow">Dreamer</span>
+          The <span className="italic text-primary" style={{ textShadow: '0 0 20px rgba(168,133,238,0.4)' }}>Dreamer</span>
         </h1>
       </header>
 
-      {/* Profile Card */}
+      {/* Identity Card */}
       <motion.section
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-surface-container-high rounded-lg p-8 relative overflow-hidden bloom-glow border border-primary/10"
+        transition={{ delay: 0.05 }}
+        className="bg-surface-container-high rounded-2xl p-6 relative overflow-hidden border border-primary/10"
       >
-        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-          <User size={120} />
+        <div className="absolute top-0 right-0 p-4 opacity-[0.04] pointer-events-none">
+          <User size={100} />
         </div>
-        
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/30 p-1">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgTwOwZzYlw-RQnn4ffjAsh8pE-Qyko7dPD7wlQzbZrNw-6THndMw5gwjvrh9_qyZylsu4RtLB80dlWHD8UTEMFmY1d3xjkt_NcGuDpNB6Zyv2x4GQ5Im4Wi8HEL8dYDjINUrsogILR6f5SN8wV3bJd1EFq_xvlc0e8DG1mO4zcoouUalWKRj-3dD9BZmKkVpFEVc2w-DbZCctm7l_VGjrDNy8ZylePXs1z4sZVz24OHQ8BTJ79dLy3lweZmWA0q40hVMNobsaMW39"
-              alt="Profile"
-              className="w-full h-full object-cover rounded-full"
-              referrerPolicy="no-referrer"
-            />
+        <div className="relative z-10 flex items-center gap-5">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center flex-shrink-0">
+            <Moon size={28} className="text-primary" />
           </div>
-          
-          <div className="text-center">
-            <h2 className="font-serif text-2xl text-on-surface">Dreamer #4209</h2>
-            <p className="text-on-surface-variant text-sm opacity-60 italic">Sanctuary Member since 2026</p>
+          <div>
+            <h2 className="font-serif text-xl text-on-surface">Dreamer</h2>
+            <p className="text-on-surface-variant text-sm opacity-60 italic mt-0.5">
+              Sanctuary member since 2026
+            </p>
+            {user?.starSign && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <Stars size={12} className="text-primary opacity-70" />
+                <span className="text-xs text-primary/80 font-medium">{user.starSign}</span>
+                {user.age && (
+                  <>
+                    <span className="text-on-surface-variant/30 text-xs">·</span>
+                    <span className="text-xs text-on-surface-variant/60">{user.age} yrs</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.section>
 
-      {/* Preferences Section */}
-      <div className="grid grid-cols-2 gap-4">
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-surface-container-low p-6 rounded-lg border border-outline-variant/10 flex flex-col gap-4"
-        >
-          <Calendar className="text-tertiary" size={24} />
+      {/* Stats row */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 gap-3"
+      >
+        <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10 flex flex-col gap-3">
+          <Clock size={18} className="text-tertiary opacity-80" />
           <div>
-            <h3 className="text-xs font-sans uppercase tracking-widest text-on-surface/50 mb-1">Age</h3>
-            <p className="text-xl font-serif text-on-surface">{user?.age || '24'}</p>
+            <h3 className="text-[10px] font-sans uppercase tracking-widest text-on-surface/40 mb-1">Sleep Window</h3>
+            <p className="text-sm font-medium text-on-surface">
+              {fmt12h(user?.bedtime)} – {fmt12h(user?.wakeTime)}
+            </p>
           </div>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-surface-container-low p-6 rounded-lg border border-outline-variant/10 flex flex-col gap-4"
-        >
-          <Stars className="text-primary" size={24} />
+        </div>
+        <div className="bg-surface-container-low p-5 rounded-xl border border-outline-variant/10 flex flex-col gap-3">
+          <Zap size={18} className="text-primary opacity-80" />
           <div>
-            <h3 className="text-xs font-sans uppercase tracking-widest text-on-surface/50 mb-1">Star Sign</h3>
-            <p className="text-xl font-serif text-on-surface">{user?.starSign || 'Gemini'}</p>
+            <h3 className="text-[10px] font-sans uppercase tracking-widest text-on-surface/40 mb-1">Dream Recall</h3>
+            <p className="text-sm font-medium text-on-surface">
+              {user?.dreamRecall ? RECALL_LABELS[user.dreamRecall] : '—'}
+            </p>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
 
-      {/* Settings List */}
-      <div className="space-y-3">
-        <button className="w-full bg-surface-container-low p-4 rounded-lg border border-outline-variant/5 flex items-center justify-between group hover:bg-surface-container-high transition-colors">
-          <div className="flex items-center gap-4">
-            <Settings size={20} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+      {/* Goals */}
+      {hasGoals && (
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="space-y-3"
+        >
+          <h2 className="font-sans text-xs uppercase tracking-widest text-on-surface/40 ml-1">My Intentions</h2>
+          <div className="space-y-2">
+            {user!.goals!.map(goal => {
+              const Icon = GOAL_ICONS[goal];
+              return (
+                <div
+                  key={goal}
+                  className="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-xl border border-outline-variant/10"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Icon size={14} className="text-primary" />
+                  </div>
+                  <span className="text-sm text-on-surface">{GOAL_LABELS[goal]}</span>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Recurring dreams */}
+      {user?.recurringDreams && (
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <h2 className="font-sans text-xs uppercase tracking-widest text-on-surface/40 ml-1">Recurring Themes</h2>
+          <div className="bg-surface-container-low px-5 py-4 rounded-xl border border-outline-variant/10">
+            <p className="text-sm text-on-surface/80 italic font-serif leading-relaxed">
+              "{user.recurringDreams}"
+            </p>
+          </div>
+        </motion.section>
+      )}
+
+      {/* Emotional tones */}
+      {hasMoods && (
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="space-y-3"
+        >
+          <h2 className="font-sans text-xs uppercase tracking-widest text-on-surface/40 ml-1">Emotional Palette</h2>
+          <div className="flex flex-wrap gap-2">
+            {user!.typicalMoods!.map(mood => (
+              <span
+                key={mood}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+              >
+                {MOOD_LABELS[mood]}
+              </span>
+            ))}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-2"
+      >
+        <button className="w-full bg-surface-container-low px-5 py-4 rounded-xl border border-outline-variant/5 flex items-center justify-between group hover:bg-surface-container-high transition-colors">
+          <div className="flex items-center gap-3">
+            <Settings size={18} className="text-on-surface-variant group-hover:text-primary transition-colors" />
             <span className="text-sm font-medium">Preferences</span>
           </div>
-          <Shield size={16} className="text-on-surface-variant/30" />
+          <ChevronRight size={16} className="text-on-surface-variant/30" />
         </button>
 
-        <button 
+        <button
           onClick={onLogout}
-          className="w-full bg-surface-container-low/50 p-4 rounded-lg border border-outline-variant/5 flex items-center justify-between group hover:bg-error-container/10 transition-colors"
+          className="w-full bg-surface-container-low/50 px-5 py-4 rounded-xl border border-outline-variant/5 flex items-center justify-between group hover:bg-error-container/10 transition-colors"
         >
-          <div className="flex items-center gap-4">
-            <LogOut size={20} className="text-on-surface-variant group-hover:text-error transition-colors" />
+          <div className="flex items-center gap-3">
+            <LogOut size={18} className="text-on-surface-variant group-hover:text-error transition-colors" />
             <span className="text-sm font-medium group-hover:text-error transition-colors">Sign Out</span>
           </div>
         </button>
-      </div>
+      </motion.div>
 
-      <div className="text-center pt-4">
-        <p className="text-[10px] text-on-surface-variant/30 uppercase tracking-[0.3em]">
-          Lucid Interface v1.0.4
+      <div className="text-center pt-2">
+        <p className="text-[9px] text-on-surface-variant/25 uppercase tracking-[0.3em]">
+          Dreamcatcher v2.0 · Lucid Interface
         </p>
       </div>
     </div>
