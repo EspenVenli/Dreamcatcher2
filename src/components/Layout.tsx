@@ -43,16 +43,6 @@ export default function Layout({
             <span className="font-serif text-2xl tracking-tight italic ml-2">{title}</span>
           </div>
           <div className="flex items-center gap-4">
-            {currentScreen !== 'login' && currentScreen !== 'onboarding' && (
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgTwOwZzYlw-RQnn4ffjAsh8pE-Qyko7dPD7wlQzbZrNw-6THndMw5gwjvrh9_qyZylsu4RtLB80dlWHD8UTEMFmY1d3xjkt_NcGuDpNB6Zyv2x4GQ5Im4Wi8HEL8dYDjINUrsogILR6f5SN8wV3bJd1EFq_xvlc0e8DG1mO4zcoouUalWKRj-3dD9BZmKkVpFEVc2w-DbZCctm7l_VGjrDNy8ZylePXs1z4sZVz24OHQ8BTJ79dLy3lweZmWA0q40hVMNobsaMW39"
-                  alt="User profile"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-            )}
             {onClose && (
               <button className="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95">
                 <MoreVertical size={24} />
