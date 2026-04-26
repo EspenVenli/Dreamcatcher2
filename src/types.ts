@@ -17,7 +17,12 @@ export type Screen =
   | 'dreams-list'
   | 'analysis'
   | 'you'
-  | 'transcription';
+  | 'transcription'
+  | 'stats'
+  | 'lucid'
+  | 'sleep';
+
+export type DreamType = 'normal' | 'lucid' | 'nightmare' | 'vivid' | 'fragment';
 
 export interface Dream {
   id: string;
@@ -35,6 +40,12 @@ export interface Dream {
   };
   imageUrl?: string;
   duration?: number;
+  isFavorite?: boolean;
+  tags?: string[];
+  notes?: string;
+  dreamType?: DreamType;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type DreamGoal =
@@ -59,13 +70,39 @@ export interface UserProfile {
   age?: number;
   starSign?: string;
   email?: string;
-  // Onboarding step 2 — goals
   goals?: DreamGoal[];
-  // Onboarding step 3 — dream landscape
   recurringDreams?: string;
   typicalMoods?: EmotionalTone[];
-  // Onboarding step 4 — sleep schedule
   bedtime?: string;
   wakeTime?: string;
   dreamRecall?: DreamRecallFrequency;
+}
+
+export interface DreamStats {
+  total: number;
+  streak: number;
+  lucidity: { Low: number; Medium: number; High: number };
+  lucidPct: number;
+  topSymbols: { name: string; count: number }[];
+  timeline: { date: string; count: number }[];
+  recentResonance: { date: string; calm: number; awe: number; fear: number }[];
+  avgResonance: { calm: number; awe: number; fear: number };
+  sleepEntries: number;
+}
+
+export interface SleepEntry {
+  id: string;
+  date: string;
+  quality: number;
+  bedtime?: string;
+  wakeTime?: string;
+  moodOnWake?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ToastMessage {
+  id: string;
+  text: string;
+  tone?: 'info' | 'success' | 'error';
 }

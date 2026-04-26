@@ -1,15 +1,16 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import {
-  User, Calendar, Stars, Settings, LogOut,
+  User, Stars, Settings, LogOut,
   Moon, Brain, Heart, Eye, BookOpen, Compass,
-  Clock, Zap, ChevronRight
+  Clock, Zap, ChevronRight, Sparkles
 } from 'lucide-react';
-import { UserProfile, DreamGoal, EmotionalTone } from '../types';
+import { UserProfile, DreamGoal, EmotionalTone, Screen } from '../types';
 
 interface YouProps {
   user: UserProfile | null;
   onLogout: () => void;
+  onNavigate?: (screen: Screen) => void;
 }
 
 const GOAL_LABELS: Record<DreamGoal, string> = {
@@ -54,7 +55,7 @@ function fmt12h(t?: string) {
   return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
-export default function You({ user, onLogout }: YouProps) {
+export default function You({ user, onLogout, onNavigate }: YouProps) {
   const hasGoals = user?.goals && user.goals.length > 0;
   const hasMoods = user?.typicalMoods && user.typicalMoods.length > 0;
 
@@ -205,6 +206,16 @@ export default function You({ user, onLogout }: YouProps) {
         transition={{ delay: 0.3 }}
         className="space-y-2"
       >
+        <button
+          onClick={() => onNavigate?.('insights')}
+          className="w-full bg-surface-container-low px-5 py-4 rounded-xl border border-outline-variant/5 flex items-center justify-between group hover:bg-surface-container-high transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Sparkles size={18} className="text-on-surface-variant group-hover:text-primary transition-colors" />
+            <span className="text-sm font-medium">Weekly Synthesis</span>
+          </div>
+          <ChevronRight size={16} className="text-on-surface-variant/30" />
+        </button>
         <button className="w-full bg-surface-container-low px-5 py-4 rounded-xl border border-outline-variant/5 flex items-center justify-between group hover:bg-surface-container-high transition-colors">
           <div className="flex items-center gap-3">
             <Settings size={18} className="text-on-surface-variant group-hover:text-primary transition-colors" />
@@ -226,7 +237,7 @@ export default function You({ user, onLogout }: YouProps) {
 
       <div className="text-center pt-2">
         <p className="text-[9px] text-on-surface-variant/25 uppercase tracking-[0.3em]">
-          Dreamcatcher v2.0 · Lucid Interface
+          Dreamcatcher v3.0 · Lucid Interface
         </p>
       </div>
     </div>

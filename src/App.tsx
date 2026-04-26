@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type } from '@google/genai';
 import { Sparkles } from 'lucide-react';
-import { Screen, Dream, UserProfile, WeeklySynthesis } from './types';
+import { Screen, Dream, UserProfile, WeeklySynthesis, DreamType } from './types';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import Onboarding from './components/Onboarding';
@@ -13,6 +13,9 @@ import DreamsList from './components/DreamsList';
 import Analysis from './components/Analysis';
 import You from './components/You';
 import Transcription from './components/Transcription';
+import Stats from './components/Stats';
+import LucidToolkit from './components/LucidToolkit';
+import { ToastProvider, useToast } from './components/Toast';
 import { apiUrl } from './api';
 
 const MOCK_DREAM: Dream = {
@@ -22,23 +25,21 @@ const MOCK_DREAM: Dream = {
   content: `I was standing in a structure made entirely of curved glass panels, suspended high above a sea of violet clouds. The air felt thin and smelled of ozone. Every step I took resonated like a low-frequency hum through the floor. I looked down, and instead of my reflection, I saw constellations shifting beneath my feet.\n\nA figure was sitting at a telescope that didn't point at the sky, but deep into the water below. They didn't speak, but I could hear their thoughts like a distant radio frequency. "The stars are just holes in the surface of everything else," they whispered. I felt a sudden weightlessness, and the glass began to dissolve into liquid light.`,
   lucidity: 'High',
   symbols: ['Flying', 'Water', 'Stars', 'Observatory'],
-  resonance: {
-    calm: 85,
-    awe: 92,
-    fear: 12,
-  },
-  imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCd00-uHzDDBP4W2Z5GLAwvTf2MD-944N-qNT4M0dM1LFe0Dc9qifYw8ZDynS3KhViDBHUyfYuyVbQapGRW30vfSW6XH04QbFezmr-6fFdz-ja335Tx9sQUx8LfUzSCSYufl4d5zTWJCENqGpzVvj9zyC1WpIuFXEeiyHZgWtveGzGYNdRtJ3QF-bh1ZUK2mFN0mNnWYIIpaeAiqFgU59FtWxcLMLt7kTtQVHYHjH_PXD276Mm42J-_jvvZ8kT8nt25BIOA2scEDK-s'
+  resonance: { calm: 85, awe: 92, fear: 12 },
+  imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCd00-uHzDDBP4W2Z5GLAwvTf2MD-944N-qNT4M0dM1LFe0Dc9qifYw8ZDynS3KhViDBHUyfYuyVbQapGRW30vfSW6XH04QbFezmr-6fFdz-ja335Tx9sQUx8LfUzSCSYufl4d5zTWJCENqGpzVvj9zyC1WpIuFXEeiyHZgWtveGzGYNdRtJ3QF-bh1ZUK2mFN0mNnWYIIpaeAiqFgU59FtWxcLMLt7kTtQVHYHjH_PXD276Mm42J-_jvvZ8kT8nt25BIOA2scEDK-s',
 };
 
-export default function App() {
+function AppShell() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [currentDream, setCurrentDream] = useState<Dream | null>(null);
   const [currentTranscript, setCurrentTranscript] = useState<string>('');
   const [currentDuration, setCurrentDuration] = useState<number>(0);
+  const [pendingDreamType, setPendingDreamType] = useState<DreamType>('normal');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [weeklySynthesis, setWeeklySynthesis] = useState<WeeklySynthesis | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const fetchSynthesis = async () => {
@@ -47,10 +48,18 @@ export default function App() {
         const data = await res.json();
         if (data) setWeeklySynthesis(data);
       } catch (e) {
-        console.error("Failed to fetch synthesis", e);
+        console.error('Failed to fetch synthesis', e);
       }
     };
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/user/profile'));
+        const data = await res.json();
+        if (data) setUser(data);
+      } catch {}
+    };
     fetchSynthesis();
+    fetchProfile();
   }, []);
 
   const handleGenerateSynthesis = async () => {
@@ -59,16 +68,21 @@ export default function App() {
       const dreamsRes = await fetch(apiUrl('/api/dreams'));
       const dreams: Dream[] = await dreamsRes.json();
 
+      if (dreams.length === 0) {
+        toast.push('Record a dream first', 'error');
+        return;
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: 'gemini-2.0-flash',
         contents: `Generate a weekly dream synthesis for a user with the following profile and recent dreams.
         User Profile: ${JSON.stringify(user)}
         Recent Dreams: ${JSON.stringify(dreams.slice(0, 10))}
 
-        Provide a headline, patterns (with icons like Waves, Key, Sparkles, Moon, Sun, Wind), celestial alignment, shadow work, a collective whisper message, and a moodscape (title, image description, and 3 hex colors).`,
+        Provide a headline, patterns (with icons like Waves, Key, Sparkles, Moon, Sun, Wind, Flame, BookOpen, Brain), celestial alignment, shadow work, a collective whisper message, and a moodscape (title, image description, and 3 hex colors).`,
         config: {
-          responseMimeType: "application/json",
+          responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -80,9 +94,9 @@ export default function App() {
                   properties: {
                     name: { type: Type.STRING },
                     frequency: { type: Type.NUMBER },
-                    icon: { type: Type.STRING }
-                  }
-                }
+                    icon: { type: Type.STRING },
+                  },
+                },
               },
               celestialAlignment: { type: Type.STRING },
               shadowWork: { type: Type.STRING },
@@ -92,13 +106,13 @@ export default function App() {
                 properties: {
                   title: { type: Type.STRING },
                   imageUrl: { type: Type.STRING },
-                  colors: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-              }
+                  colors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+              },
             },
-            required: ["headline", "patterns", "celestialAlignment", "shadowWork", "collectiveWhisper", "moodscape"]
-          }
-        }
+            required: ['headline', 'patterns', 'celestialAlignment', 'shadowWork', 'collectiveWhisper', 'moodscape'],
+          },
+        },
       });
 
       const result = JSON.parse(response.text);
@@ -109,39 +123,41 @@ export default function App() {
       const res = await fetch(apiUrl('/api/synthesis'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result)
+        body: JSON.stringify(result),
       });
       const savedSynthesis = await res.json();
       setWeeklySynthesis(savedSynthesis);
+      toast.push('Synthesis generated', 'success');
     } catch (error) {
-      console.error("Synthesis generation failed:", error);
+      console.error('Synthesis generation failed:', error);
+      toast.push('Synthesis failed', 'error');
     } finally {
       setIsSynthesizing(false);
     }
   };
 
   const handleLogin = () => {
-    setCurrentScreen('onboarding');
+    setCurrentScreen(user ? 'whisper' : 'onboarding');
   };
 
   const handleOnboardingComplete = async (data: UserProfile) => {
     setUser(data);
-    // Persist profile to backend
     try {
       await fetch(apiUrl('/api/user/profile'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
     } catch (e) {
-      console.error("Failed to save user profile", e);
+      console.error('Failed to save user profile', e);
     }
     setCurrentScreen('whisper');
   };
 
-  const handleSendVoiceNote = async (duration: number, transcript: string) => {
+  const handleSendVoiceNote = async (duration: number, transcript: string, dreamType: DreamType) => {
     setCurrentTranscript(transcript);
     setCurrentDuration(duration);
+    setPendingDreamType(dreamType);
     setCurrentScreen('transcription');
   };
 
@@ -152,11 +168,11 @@ export default function App() {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: 'gemini-2.0-flash',
         contents: `Analyze this dream transcript. Provide a title, a cleaned-up narrative version, and a psychological analysis.
         Transcript: ${currentTranscript}`,
         config: {
-          responseMimeType: "application/json",
+          responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -170,13 +186,13 @@ export default function App() {
                 properties: {
                   calm: { type: Type.NUMBER },
                   awe: { type: Type.NUMBER },
-                  fear: { type: Type.NUMBER }
-                }
-              }
+                  fear: { type: Type.NUMBER },
+                },
+              },
             },
-            required: ["title", "cleanedContent", "analysis", "lucidity", "symbols", "resonance"]
-          }
-        }
+            required: ['title', 'cleanedContent', 'analysis', 'lucidity', 'symbols', 'resonance'],
+          },
+        },
       });
 
       const result = JSON.parse(response.text);
@@ -185,16 +201,21 @@ export default function App() {
         date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         content: currentTranscript,
         duration: currentDuration,
-        ...result
+        dreamType: pendingDreamType,
+        ...result,
       };
 
       setCurrentDream(newDream);
     } catch (error) {
-      console.error("Analysis failed:", error);
+      console.error('Analysis failed:', error);
+      toast.push('Analysis failed — using fallback', 'error');
       setCurrentDream({
         ...MOCK_DREAM,
         id: Date.now().toString(),
-        duration: currentDuration
+        title: 'Untitled Dream',
+        content: currentTranscript || MOCK_DREAM.content,
+        duration: currentDuration,
+        dreamType: pendingDreamType,
       });
     } finally {
       setIsAnalyzing(false);
@@ -205,14 +226,18 @@ export default function App() {
     if (!currentDream) return;
 
     try {
-      await fetch(apiUrl('/api/dreams'), {
+      const res = await fetch(apiUrl('/api/dreams'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentDream)
+        body: JSON.stringify(currentDream),
       });
+      const saved = await res.json();
+      setCurrentDream(saved);
+      toast.push('Dream archived', 'success');
       setCurrentScreen('dreams-list');
     } catch (error) {
-      console.error("Failed to save dream:", error);
+      console.error('Failed to save dream:', error);
+      toast.push('Could not save dream', 'error');
       setCurrentScreen('dreams-list');
     }
   };
@@ -220,7 +245,7 @@ export default function App() {
   const renderScreen = () => {
     if (isAnalyzing) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-8">
+        <div className="flex flex-col items-center justify-center h-full gap-8 pt-20">
           <motion.div
             animate={{ rotate: 360, scale: [1, 1.15, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -230,7 +255,7 @@ export default function App() {
           </motion.div>
           <div className="text-center space-y-2">
             <h2 className="font-serif text-2xl text-primary italic">Deepening Analysis</h2>
-            <p className="text-on-surface-variant text-sm animate-pulse opacity-70">Consulting the collective whisper...</p>
+            <p className="text-on-surface-variant text-sm animate-pulse opacity-70">Consulting the collective whisper…</p>
           </div>
         </div>
       );
@@ -245,8 +270,18 @@ export default function App() {
         return <Whisper onSend={handleSendVoiceNote} />;
       case 'insights':
         return <Insights synthesis={weeklySynthesis} onGenerate={handleGenerateSynthesis} isGenerating={isSynthesizing} />;
+      case 'stats':
+        return <Stats />;
+      case 'lucid':
+        return <LucidToolkit />;
       case 'dream-detail':
-        return <DreamDetail dream={currentDream || MOCK_DREAM} />;
+        return (
+          <DreamDetail
+            dream={currentDream || MOCK_DREAM}
+            onUpdate={(d) => setCurrentDream(d)}
+            onDelete={() => setCurrentScreen('dreams-list')}
+          />
+        );
       case 'dreams-list':
         return (
           <DreamsList
@@ -261,7 +296,7 @@ export default function App() {
       case 'transcription':
         return <Transcription transcript={currentTranscript} onAnalyze={handleAnalyzeTranscript} />;
       case 'you':
-        return <You user={user} onLogout={() => setCurrentScreen('login')} />;
+        return <You user={user} onLogout={() => setCurrentScreen('login')} onNavigate={setCurrentScreen} />;
       default:
         return <Login onLogin={handleLogin} />;
     }
@@ -277,24 +312,30 @@ export default function App() {
     if (
       currentScreen === 'dream-detail' ||
       currentScreen === 'analysis' ||
-      currentScreen === 'you' ||
       currentScreen === 'transcription'
     ) {
       return {
         showTopNav: true,
-        showBottomNav: currentScreen === 'you',
+        showBottomNav: false,
         title:
-          currentScreen === 'you'         ? 'Profile'
-          : currentScreen === 'transcription' ? 'Review Dream'
-          : 'Dream Analysis',
-        onClose:
-          currentScreen === 'you' ? undefined
-          : () => setCurrentScreen(
-              currentScreen === 'analysis' || currentScreen === 'transcription'
-                ? 'whisper'
-                : 'dreams-list'
-            )
+          currentScreen === 'transcription' ? 'Review Dream' :
+          currentScreen === 'analysis' ? 'Dream Analysis' :
+          'Dream',
+        onClose: () => setCurrentScreen(
+          currentScreen === 'analysis' || currentScreen === 'transcription'
+            ? 'whisper'
+            : 'dreams-list',
+        ),
       };
+    }
+    if (currentScreen === 'lucid') {
+      return { showTopNav: true, showBottomNav: true, title: 'Lucid' };
+    }
+    if (currentScreen === 'stats') {
+      return { showTopNav: true, showBottomNav: true, title: 'Stats' };
+    }
+    if (currentScreen === 'you') {
+      return { showTopNav: true, showBottomNav: true, title: 'Profile' };
     }
     return { showTopNav: true, showBottomNav: true };
   };
@@ -318,5 +359,13 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
     </Layout>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppShell />
+    </ToastProvider>
   );
 }
