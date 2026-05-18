@@ -10,6 +10,7 @@ import {
   ZodiacSign, FullBirthChart, BirthData,
 } from '../types';
 import { apiUrl } from '../api';
+import Sleep from './Sleep';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -156,7 +157,7 @@ function ChartVisual({ chart }: { chart?: FullBirthChart }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-type Tab = 'profile' | 'chart' | 'settings';
+type Tab = 'profile' | 'chart' | 'sleep' | 'settings';
 
 export default function You({ user, onLogout, onUpdateAstrology, onUpdateProfile }: YouProps) {
   const [activeTab, setActiveTab] = useState<Tab>('profile');
@@ -716,12 +717,12 @@ export default function You({ user, onLogout, onUpdateAstrology, onUpdateProfile
       </header>
 
       {/* Tabs */}
-      <div className="flex bg-surface-container-high rounded-xl p-1">
-        {(['profile', 'chart', 'settings'] as Tab[]).map(tab => (
+      <div className="flex bg-surface-container-high rounded-xl p-1 gap-0.5">
+        {(['profile', 'chart', 'sleep', 'settings'] as Tab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2.5 rounded-lg text-xs font-medium capitalize transition-all ${
+            className={`flex-1 py-2.5 rounded-lg text-[10px] font-medium capitalize transition-all ${
               activeTab === tab
                 ? 'bg-primary/20 text-primary'
                 : 'text-on-surface/40 hover:text-on-surface/60'
@@ -743,6 +744,7 @@ export default function You({ user, onLogout, onUpdateAstrology, onUpdateProfile
         >
           {activeTab === 'profile'  && ProfileTab}
           {activeTab === 'chart'    && ChartTab}
+          {activeTab === 'sleep'    && <Sleep user={user} embedded />}
           {activeTab === 'settings' && SettingsTab}
         </motion.div>
       </AnimatePresence>

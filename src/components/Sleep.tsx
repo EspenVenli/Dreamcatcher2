@@ -5,6 +5,7 @@ import { UserProfile } from '../types';
 
 interface SleepProps {
   user: UserProfile | null;
+  embedded?: boolean;
 }
 
 const TECHNIQUES = [
@@ -87,21 +88,23 @@ const MEDITATIONS = [
   },
 ];
 
-export default function Sleep({ user }: SleepProps) {
+export default function Sleep({ user, embedded = false }: SleepProps) {
   const [openTechnique, setOpenTechnique] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'techniques' | 'meditations' | 'tonight'>('tonight');
 
   const tonight = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
-    <div className="pt-6 pb-32 px-6 max-w-md mx-auto space-y-6">
-      {/* Header */}
-      <header className="space-y-1 pt-2">
-        <span className="text-primary font-sans text-xs uppercase tracking-widest opacity-80">Sleep Sanctuary</span>
-        <h1 className="font-serif text-4xl text-on-surface leading-tight">
-          Dream <span className="italic text-primary" style={{ textShadow: '0 0 20px rgba(168,133,238,0.3)' }}>Deeper</span>
-        </h1>
-      </header>
+    <div className={embedded ? 'space-y-4' : 'pt-6 pb-32 px-6 max-w-md mx-auto space-y-6'}>
+      {/* Header — only shown as standalone screen */}
+      {!embedded && (
+        <header className="space-y-1 pt-2">
+          <span className="text-primary font-sans text-xs uppercase tracking-widest opacity-80">Sleep Sanctuary</span>
+          <h1 className="font-serif text-4xl text-on-surface leading-tight">
+            Dream <span className="italic text-primary" style={{ textShadow: '0 0 20px rgba(168,133,238,0.3)' }}>Deeper</span>
+          </h1>
+        </header>
+      )}
 
       {/* Section tabs */}
       <div className="flex bg-surface-container-high rounded-xl p-1">

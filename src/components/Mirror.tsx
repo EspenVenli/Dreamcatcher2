@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Moon } from 'lucide-react';
+import { Sparkles, Moon, ChevronRight } from 'lucide-react';
 import { UserProfile, Dream } from '../types';
 import { apiUrl } from '../api';
 
@@ -57,18 +57,6 @@ const DEFAULT_QUESTIONS = [
   'What emotions am I processing in my sleep?',
   'Why do I dream about running?',
   'What recurring theme should I pay attention to?',
-];
-
-// Deterministic positions and speeds for each floating question
-// x: left offset across full width; top: initial CSS position from top of container
-// y animation is a pixel drift (transform), not a position — so we use numbers
-const FLOAT_CONFIG = [
-  { x: '5%',  top: '72%', duration: 18, delay: 0  },
-  { x: '38%', top: '58%', duration: 22, delay: 3  },
-  { x: '18%', top: '42%', duration: 16, delay: 6  },
-  { x: '58%', top: '78%', duration: 20, delay: 1  },
-  { x: '42%', top: '65%', duration: 24, delay: 4  },
-  { x: '62%', top: '50%', duration: 19, delay: 8  },
 ];
 
 // Static starfield dots (pre-computed so they don't re-render)
@@ -157,7 +145,6 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
     }
   }
 
-  const showStarfield = messages.length === 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] pt-6 relative overflow-hidden">
@@ -213,68 +200,48 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
         </div>
       )}
 
-      {/* Floating questions — visible when no messages */}
-      <AnimatePresence>
-        {showStarfield && (
-          <div className="absolute inset-0 pointer-events-none z-10" style={{ top: '80px', bottom: '100px' }}>
-            {questions.map((q, i) => {
-              const cfg = FLOAT_CONFIG[i];
-              return (
-                <motion.button
-                  key={q}
-                  className="absolute pointer-events-auto"
-                  style={{ left: cfg.x, top: cfg.top }}
-                  initial={{ opacity: 0, y: 0 }}
-                  animate={{
-                    opacity: [0, 0.75, 0.75, 0],
-                    y: [0, -50, -100, -150],
-                  }}
-                  transition={{
-                    duration: cfg.duration,
-                    delay: cfg.delay,
-                    repeat: Infinity,
-                    ease: 'linear',
-                  }}
-                  onClick={() => {
-                    setInput(q);
-                    setTimeout(() => handleSend(q), 100);
-                  }}
-                >
-                  <span className="block px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] text-on-surface/80 bg-surface-container-high/70 border border-primary/20 backdrop-blur-sm whitespace-nowrap hover:text-primary hover:border-primary/20 transition-colors">
-                    {q}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 space-y-5 pb-4 relative z-10">
         {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center h-full gap-6 text-center"
+            className="flex flex-col gap-6"
           >
-            <motion.div
-              animate={{ scale: [1, 1.08, 1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
-                <Sparkles size={28} className="text-primary" />
+            {/* Orb + intro */}
+            <div className="flex flex-col items-center gap-4 text-center pt-4">
+              <motion.div
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
+                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
+                  <Sparkles size={24} className="text-primary" />
+                </div>
+              </motion.div>
+              <div className="space-y-1 max-w-xs">
+                <p className="font-serif text-base text-on-surface/80 italic">"What do you wish to understand?"</p>
+                <p className="text-xs text-on-surface/35 leading-relaxed">Tap a question or write your own below</p>
               </div>
-            </motion.div>
-            <div className="space-y-2 max-w-xs">
-              <p className="font-serif text-lg text-on-surface/80 italic">
-                "What do you wish to understand?"
-              </p>
-              <p className="text-xs text-on-surface/40 leading-relaxed">
-                Ask anything about your dreams, patterns, or inner life. The Mirror sees only you.
-              </p>
+            </div>
+
+            {/* Static question list */}
+            <div className="space-y-2">
+              {questions.map((q, i) => (
+                <motion.button
+                  key={q}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  onClick={() => { setInput(q); setTimeout(() => handleSend(q), 80); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-container-high/60 border border-outline-variant/15 hover:border-primary/30 hover:bg-primary/5 transition-all group text-left"
+                >
+                  <span className="text-primary/40 font-mono text-xs w-4 flex-shrink-0">✦</span>
+                  <span className="flex-1 text-sm text-on-surface/70 group-hover:text-on-surface/90 transition-colors leading-snug">{q}</span>
+                  <ChevronRight size={14} className="text-on-surface/20 group-hover:text-primary/50 transition-colors flex-shrink-0" />
+                </motion.button>
+              ))}
             </div>
           </motion.div>
         )}

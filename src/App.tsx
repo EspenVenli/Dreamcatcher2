@@ -128,7 +128,17 @@ export default function App() {
       }
     } catch (error) {
       console.error('Analysis failed:', error);
-      const fallback = { ...MOCK_DREAM, id: Date.now().toString(), duration: currentDuration };
+      // Fallback: save the raw transcript — never show someone else's mock dream
+      const fallback: Dream = {
+        id: Date.now().toString(),
+        title: 'Untitled Dream',
+        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        content: currentTranscript || 'No transcript available.',
+        lucidity: 'Medium',
+        symbols: [],
+        resonance: { calm: 50, awe: 50, fear: 20 },
+        duration: currentDuration,
+      };
       try {
         const saved = await fetch(apiUrl('/api/dreams'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fallback) });
         const savedDream = await saved.json();

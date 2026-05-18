@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, Moon, Mic, BarChart2, MoreVertical, X, BookOpen, User, Eye } from 'lucide-react';
+
 import { Screen } from '../types';
 
 interface LayoutProps {
@@ -48,14 +49,6 @@ export default function Layout({
                 <MoreVertical size={24} />
               </button>
             )}
-            <button
-              onClick={() => onNavigate('you')}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                currentScreen === 'you' ? 'bg-primary/20 text-primary' : 'text-on-surface/40 hover:text-primary/80'
-              }`}
-            >
-              <User size={18} />
-            </button>
           </div>
         </header>
       )}
@@ -109,13 +102,13 @@ export default function Layout({
           </button>
 
           <button
-            onClick={() => onNavigate('sleep')}
+            onClick={() => onNavigate('you')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'sleep' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'you' || currentScreen === 'sleep' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <Moon size={22} className="mb-1" />
-            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Sleep</span>
+            <User size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">You</span>
           </button>
         </nav>
       )}
