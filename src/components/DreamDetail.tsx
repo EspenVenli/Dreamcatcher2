@@ -1,13 +1,21 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sun, PenTool, Share2, Heart, Waves, Stars, Eye, Cloud, Sparkles } from 'lucide-react';
-import { Dream } from '../types';
+import { Sun, PenTool, Share2, Heart, Waves, Stars, Eye, Cloud, Sparkles, Moon } from 'lucide-react';
+import { Dream, EmotionTag } from '../types';
+
+const EMOTION_EMOJIS: Partial<Record<EmotionTag, string>> = {
+  anxious:'😰', peaceful:'😌', confused:'😕', joyful:'😄', afraid:'😨', nostalgic:'🌙',
+  melancholic:'🌧️', hopeful:'🌅', lonely:'🫥', loved:'💜', angry:'🔥', excited:'✨',
+  overwhelmed:'🌊', grief:'🖤', curious:'🔍', free:'🕊️', lost:'🌫️', safe:'🛡️',
+  euphoric:'💫', serene:'🌊', wonder:'🔭',
+};
 
 interface DreamDetailProps {
   dream: Dream;
+  onAskOracle?: (dream: Dream) => void;
 }
 
-export default function DreamDetail({ dream }: DreamDetailProps) {
+export default function DreamDetail({ dream, onAskOracle }: DreamDetailProps) {
   return (
     <div className="pt-8 pb-32 px-6 max-w-3xl mx-auto space-y-12">
       {/* Hero Header */}
@@ -21,13 +29,23 @@ export default function DreamDetail({ dream }: DreamDetailProps) {
         <h2 className="text-5xl md:text-6xl font-serif font-bold text-on-surface leading-tight">
           {dream.title}
         </h2>
-        <div className="flex items-center gap-4 py-2">
+        <div className="flex items-center gap-3 py-1 flex-wrap">
           <span className="flex items-center gap-1 text-tertiary">
             <Sun size={14} />
             <span className="text-sm font-sans font-medium uppercase tracking-tighter">
               {dream.lucidity} Lucidity
             </span>
           </span>
+          {dream.isLucid && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/15 text-primary border border-primary/20 uppercase tracking-wider">
+              ✦ Lucid
+            </span>
+          )}
+          {dream.emotionTag && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-container-high text-on-surface/60 border border-outline-variant/10 uppercase tracking-wider">
+              {EMOTION_EMOJIS[dream.emotionTag]} {dream.emotionTag}
+            </span>
+          )}
         </div>
       </section>
 
@@ -109,28 +127,39 @@ export default function DreamDetail({ dream }: DreamDetailProps) {
         </div>
       )}
 
+      {/* Ask Oracle CTA */}
+      {onAskOracle && (
+        <motion.button
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onAskOracle(dream)}
+          className="w-full flex items-center gap-4 px-6 py-5 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+            <Moon size={18} className="text-primary" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-primary">Ask The Mirror about this dream</p>
+            <p className="text-xs text-on-surface/40 mt-0.5">Get a personal interpretation grounded in your history</p>
+          </div>
+          <Sparkles size={16} className="text-primary/40 ml-auto group-hover:text-primary transition-colors" />
+        </motion.button>
+      )}
+
       {/* Bottom Actions Bar */}
-      <div className="flex justify-around items-center pt-8">
+      <div className="flex justify-around items-center pt-4">
         <button className="flex flex-col items-center gap-1 group">
           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high group-active:scale-95 transition-transform">
-            <Sparkles size={20} className="text-on-surface-variant" />
+            <Share2 size={20} className="text-on-surface-variant" />
           </div>
-          <span className="text-[10px] font-sans font-medium uppercase tracking-widest text-on-surface/60">
-            Re-analyze
-          </span>
-        </button>
-
-        <button className="flex flex-col items-center justify-center bg-gradient-to-br from-[#D3BBFF] to-[#A885EE] text-[#161212] rounded-full w-14 h-14 shadow-[0_0_20px_rgba(168,133,238,0.6)] active:ring-2 active:ring-[#A885EE] active:ring-offset-2 active:ring-offset-[#161212] transition-all">
-          <Share2 size={24} fill="currentColor" />
+          <span className="text-[10px] font-sans font-medium uppercase tracking-widest text-on-surface/60">Share</span>
         </button>
 
         <button className="flex flex-col items-center gap-1 group">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-surface-container-high group-active:scale-95 transition-transform">
-            <Heart size={20} className="text-on-surface-variant" />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all group-active:scale-95 ${dream.isFavourite ? 'bg-pink-500/20' : 'bg-surface-container-high'}`}>
+            <Heart size={20} className={dream.isFavourite ? 'text-pink-400 fill-pink-400' : 'text-on-surface-variant'} />
           </div>
-          <span className="text-[10px] font-sans font-medium uppercase tracking-widest text-on-surface/60">
-            Add to Favorites
-          </span>
+          <span className="text-[10px] font-sans font-medium uppercase tracking-widest text-on-surface/60">Favourite</span>
         </button>
       </div>
     </div>

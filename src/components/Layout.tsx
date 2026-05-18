@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Moon, Mic, BarChart2, MoreVertical, X, BookOpen, User } from 'lucide-react';
+import { Sparkles, Moon, Mic, BarChart2, MoreVertical, X, BookOpen, User, Eye } from 'lucide-react';
 import { Screen } from '../types';
 
 interface LayoutProps {
@@ -40,14 +40,22 @@ export default function Layout({
             ) : (
               <Sparkles size={24} />
             )}
-            <span className="font-serif text-2xl tracking-tight italic ml-2">{title}</span>
+            <span className="font-serif text-2xl tracking-tight italic ml-2">Dreamcatcher</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {onClose && (
               <button className="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95">
                 <MoreVertical size={24} />
               </button>
             )}
+            <button
+              onClick={() => onNavigate('you')}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                currentScreen === 'you' ? 'bg-primary/20 text-primary' : 'text-on-surface/40 hover:text-primary/80'
+              }`}
+            >
+              <User size={18} />
+            </button>
           </div>
         </header>
       )}
@@ -66,8 +74,8 @@ export default function Layout({
               currentScreen === 'whisper' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <Mic size={24} className="mb-1" />
-            <span className="font-sans text-[10px] font-medium tracking-wider uppercase">Whisper</span>
+            <Mic size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Whisper</span>
           </button>
 
           <button
@@ -76,8 +84,8 @@ export default function Layout({
               currentScreen === 'dreams-list' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <BookOpen size={24} className="mb-1" />
-            <span className="font-sans text-[10px] font-medium tracking-wider uppercase">Dreams</span>
+            <BookOpen size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Dreams</span>
           </button>
 
           <button
@@ -86,18 +94,28 @@ export default function Layout({
               currentScreen === 'insights' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <BarChart2 size={24} className="mb-1" />
-            <span className="font-sans text-[10px] font-medium tracking-wider uppercase">Insights</span>
+            <BarChart2 size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Insights</span>
           </button>
 
           <button
-            onClick={() => onNavigate('you')}
+            onClick={() => onNavigate('mirror')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'you' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'mirror' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <User size={24} className="mb-1" />
-            <span className="font-sans text-[10px] font-medium tracking-wider uppercase">You</span>
+            <Eye size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Mirror</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('sleep')}
+            className={`flex flex-col items-center justify-center transition-colors ${
+              currentScreen === 'sleep' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+            }`}
+          >
+            <Moon size={22} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Sleep</span>
           </button>
         </nav>
       )}

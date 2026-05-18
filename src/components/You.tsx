@@ -573,9 +573,10 @@ export default function You({ user, onLogout, onUpdateAstrology, onUpdateProfile
               type="text"
               value={birthPlace}
               onChange={e => { setBirthPlace(e.target.value); setCalcSuccess(false); }}
-              placeholder="e.g. Oslo, Norway"
+              placeholder="City, Country — e.g. Copenhagen, Denmark"
               className="w-full bg-surface-container border border-outline-variant/15 focus:border-primary/40 rounded-xl py-3 px-4 text-sm text-on-surface placeholder-on-surface/20 focus:outline-none transition-colors"
             />
+            <p className="text-[10px] text-on-surface/30 ml-1">Include the country for best results</p>
           </div>
 
           {calcError && (

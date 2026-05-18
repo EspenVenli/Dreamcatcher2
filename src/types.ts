@@ -9,16 +9,8 @@ export interface WeeklySynthesis {
 }
 
 export type Screen =
-  | 'login'
-  | 'onboarding'
-  | 'whisper'
-  | 'insights'
-  | 'dream-detail'
-  | 'dreams-list'
-  | 'analysis'
-  | 'you'
-  | 'transcription'
-  | 'mirror';
+  | 'login' | 'onboarding' | 'whisper' | 'insights' | 'dream-detail'
+  | 'dreams-list' | 'analysis' | 'you' | 'transcription' | 'mirror' | 'sleep';
 
 export type EmotionTag =
   | 'anxious' | 'peaceful' | 'confused' | 'joyful' | 'afraid' | 'nostalgic'

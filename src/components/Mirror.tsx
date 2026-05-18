@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Moon } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
 import { UserProfile, Dream } from '../types';
 import { apiUrl } from '../api';
 
@@ -131,42 +130,21 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
     setInput('');
-
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text: msg };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
-
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-      const systemContext = `You are The Mirror — a deeply personal, poetic oracle within the Dreamcatcher app. You are not a generic chatbot. You speak with calm, grounded wisdom, lyrical depth, and precise emotional intelligence.
-
-Every response is rooted in this specific person's dream history, astrological profile, emotional patterns, life circumstances, and stated intentions. You do not speak in generalities. You see patterns others miss.
-
-USER PROFILE:
-${JSON.stringify(user, null, 2)}
-
-DREAM HISTORY (${dreams.length} dreams — use these specifically):
-${JSON.stringify(dreams.slice(0, 15), null, 2)}
-
-CONVERSATION SO FAR:
-${messages.map(m => `${m.role === 'user' ? 'You' : 'Mirror'}: ${m.text}`).join('\n')}
-
-User asks: ${msg}
-
-Respond as The Mirror. Be specific — reference their actual dreams, symbols, emotions. Keep to 2–4 short paragraphs. Speak in second person. Never say you are an AI. Be reflective, not prescriptive. End with one quiet, open question.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: systemContext,
+      const res = await fetch('/api/mirror/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, history: messages, userProfile: user }),
       });
-
-      const oracleMsg: Message = {
+      const data = await res.json();
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'oracle',
-        text: response.text ?? 'The mirror is silent for now...',
-      };
-      setMessages(prev => [...prev, oracleMsg]);
+        text: data.text ?? 'The mirror is silent for now...',
+      }]);
     } catch (err) {
       console.error('Mirror error:', err);
       setMessages(prev => [...prev, {
@@ -262,7 +240,7 @@ Respond as The Mirror. Be specific — reference their actual dreams, symbols, e
                     setTimeout(() => handleSend(q), 100);
                   }}
                 >
-                  <span className="block px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] text-on-surface/50 bg-surface-container-high/40 border border-outline-variant/10 backdrop-blur-sm whitespace-nowrap hover:text-primary hover:border-primary/20 transition-colors">
+                  <span className="block px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] text-on-surface/80 bg-surface-container-high/70 border border-primary/20 backdrop-blur-sm whitespace-nowrap hover:text-primary hover:border-primary/20 transition-colors">
                     {q}
                   </span>
                 </motion.button>

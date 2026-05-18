@@ -27,27 +27,27 @@ const GOALS: { id: DreamGoal; label: string; desc: string; icon: React.ElementTy
   { id: 'just-curious',        label: 'Just curious',                desc: 'Explore at your own pace',       icon: Compass },
 ];
 
-const MOODS: { id: EmotionalTone; label: string; emoji: string }[] = [
-  { id: 'peaceful',     label: 'Peaceful',     emoji: '😌' },
-  { id: 'anxious',      label: 'Anxious',      emoji: '😰' },
-  { id: 'adventurous',  label: 'Adventurous',  emoji: '🧭' },
-  { id: 'melancholic',  label: 'Melancholic',  emoji: '🌧️' },
-  { id: 'surreal',      label: 'Surreal',      emoji: '🌀' },
-  { id: 'vivid',        label: 'Vivid',        emoji: '✨' },
-  { id: 'joyful',       label: 'Joyful',       emoji: '😄' },
-  { id: 'confused',     label: 'Confused',     emoji: '😕' },
-  { id: 'afraid',       label: 'Afraid',       emoji: '😨' },
-  { id: 'hopeful',      label: 'Hopeful',      emoji: '🌅' },
-  { id: 'curious',      label: 'Curious',      emoji: '🔍' },
-  { id: 'excited',      label: 'Excited',      emoji: '⚡' },
-  { id: 'overwhelmed',  label: 'Overwhelmed',  emoji: '🌊' },
-  { id: 'lonely',       label: 'Lonely',       emoji: '🫥' },
-  { id: 'wonder',       label: 'Wonder',       emoji: '🔭' },
-  { id: 'euphoric',     label: 'Euphoric',     emoji: '💫' },
-  { id: 'tender',       label: 'Tender',       emoji: '🌸' },
-  { id: 'strange',      label: 'Strange',      emoji: '🌑' },
-  { id: 'safe',         label: 'Safe',         emoji: '🛡️' },
-  { id: 'lost',         label: 'Lost',         emoji: '🌫️' },
+const MOODS: { id: EmotionalTone; label: string; symbol: string }[] = [
+  { id: 'peaceful',     label: 'Peaceful',     symbol: '☽' },
+  { id: 'anxious',      label: 'Anxious',      symbol: '⊗' },
+  { id: 'adventurous',  label: 'Adventurous',  symbol: '↑' },
+  { id: 'melancholic',  label: 'Melancholic',  symbol: '●' },
+  { id: 'surreal',      label: 'Surreal',      symbol: '◎' },
+  { id: 'vivid',        label: 'Vivid',        symbol: '✦' },
+  { id: 'joyful',       label: 'Joyful',       symbol: '○' },
+  { id: 'confused',     label: 'Confused',     symbol: '∞' },
+  { id: 'afraid',       label: 'Afraid',       symbol: '◈' },
+  { id: 'hopeful',      label: 'Hopeful',      symbol: '△' },
+  { id: 'curious',      label: 'Curious',      symbol: '⊙' },
+  { id: 'excited',      label: 'Excited',      symbol: '⋆' },
+  { id: 'overwhelmed',  label: 'Overwhelmed',  symbol: '≋' },
+  { id: 'lonely',       label: 'Lonely',       symbol: '◌' },
+  { id: 'wonder',       label: 'Wonder',       symbol: '✧' },
+  { id: 'euphoric',     label: 'Euphoric',     symbol: '◉' },
+  { id: 'tender',       label: 'Tender',       symbol: '❍' },
+  { id: 'strange',      label: 'Strange',      symbol: '⊛' },
+  { id: 'safe',         label: 'Safe',         symbol: '▽' },
+  { id: 'lost',         label: 'Lost',         symbol: '≈' },
 ];
 
 const RECALL_OPTIONS: { id: DreamRecallFrequency; label: string; sub: string }[] = [
@@ -629,7 +629,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                             : 'bg-surface-container-low border border-outline-variant/15 text-on-surface-variant hover:border-primary/30 hover:text-primary'
                         }`}
                       >
-                        <span>{mood.emoji}</span>
+                        <span>{mood.symbol}</span>
                         <span>{mood.label}</span>
                       </button>
                     );
@@ -824,9 +824,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       type="text"
                       value={astroBirthPlace}
                       onChange={e => { setAstroBirthPlace(e.target.value); setAstroCalculatedChart(undefined); }}
-                      placeholder="e.g. Oslo, Norway"
+                      placeholder="City, Country — e.g. Oslo, Norway"
                       className="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary/40 rounded-xl py-3 px-4 text-sm text-on-surface placeholder-on-surface/20 focus:outline-none transition-colors"
                     />
+                    <p className="text-[10px] text-on-surface/30 ml-1">Include the country for best results</p>
                   </div>
 
                   {astroCalcError && (

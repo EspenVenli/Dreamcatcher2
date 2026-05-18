@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { Sparkles } from 'lucide-react';
-import { Screen, Dream, UserProfile, WeeklySynthesis } from './types';
+import { Screen, Dream, UserProfile, WeeklySynthesis, AstrologyProfile, EmotionTag } from './types';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import Onboarding from './components/Onboarding';
@@ -13,6 +12,8 @@ import DreamsList from './components/DreamsList';
 import Analysis from './components/Analysis';
 import You from './components/You';
 import Transcription from './components/Transcription';
+import Mirror from './components/Mirror';
+import Sleep from './components/Sleep';
 import { apiUrl } from './api';
 
 const MOCK_DREAM: Dream = {
@@ -39,6 +40,7 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [weeklySynthesis, setWeeklySynthesis] = useState<WeeklySynthesis | null>(null);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [mirrorInitialDream, setMirrorInitialDream] = useState<Dream | null>(null);
 
   useEffect(() => {
     const fetchSynthesis = async () => {
@@ -56,65 +58,15 @@ export default function App() {
   const handleGenerateSynthesis = async () => {
     setIsSynthesizing(true);
     try {
-      const dreamsRes = await fetch(apiUrl('/api/dreams'));
-      const dreams: Dream[] = await dreamsRes.json();
-
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: `Generate a weekly dream synthesis for a user with the following profile and recent dreams.
-        User Profile: ${JSON.stringify(user)}
-        Recent Dreams: ${JSON.stringify(dreams.slice(0, 10))}
-
-        Provide a headline, patterns (with icons like Waves, Key, Sparkles, Moon, Sun, Wind), celestial alignment, shadow work, a collective whisper message, and a moodscape (title, image description, and 3 hex colors).`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              headline: { type: Type.STRING },
-              patterns: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING },
-                    frequency: { type: Type.NUMBER },
-                    icon: { type: Type.STRING }
-                  }
-                }
-              },
-              celestialAlignment: { type: Type.STRING },
-              shadowWork: { type: Type.STRING },
-              collectiveWhisper: { type: Type.STRING },
-              moodscape: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  imageUrl: { type: Type.STRING },
-                  colors: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-              }
-            },
-            required: ["headline", "patterns", "celestialAlignment", "shadowWork", "collectiveWhisper", "moodscape"]
-          }
-        }
-      });
-
-      const result = JSON.parse(response.text);
-      if (!result.moodscape.imageUrl || !result.moodscape.imageUrl.startsWith('http')) {
-        result.moodscape.imageUrl = `https://picsum.photos/seed/${encodeURIComponent(result.moodscape.title)}/800/600?blur=2`;
-      }
-
-      const res = await fetch(apiUrl('/api/synthesis'), {
+      const res = await fetch(apiUrl('/api/synthesis/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(result)
+        body: JSON.stringify({ userProfile: user }),
       });
       const savedSynthesis = await res.json();
       setWeeklySynthesis(savedSynthesis);
     } catch (error) {
-      console.error("Synthesis generation failed:", error);
+      console.error('Synthesis generation failed:', error);
     } finally {
       setIsSynthesizing(false);
     }
@@ -148,73 +100,88 @@ export default function App() {
   const handleAnalyzeTranscript = async () => {
     setIsAnalyzing(true);
     setCurrentScreen('analysis');
-
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: `Analyze this dream transcript. Provide a title, a cleaned-up narrative version, and a psychological analysis.
-        Transcript: ${currentTranscript}`,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              cleanedContent: { type: Type.STRING },
-              analysis: { type: Type.STRING },
-              lucidity: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] },
-              symbols: { type: Type.ARRAY, items: { type: Type.STRING } },
-              resonance: {
-                type: Type.OBJECT,
-                properties: {
-                  calm: { type: Type.NUMBER },
-                  awe: { type: Type.NUMBER },
-                  fear: { type: Type.NUMBER }
-                }
-              }
-            },
-            required: ["title", "cleanedContent", "analysis", "lucidity", "symbols", "resonance"]
-          }
-        }
+      const res = await fetch(apiUrl('/api/dreams/analyze'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: currentTranscript, userProfile: user }),
       });
-
-      const result = JSON.parse(response.text);
+      if (!res.ok) throw new Error('Analysis failed');
+      const result = await res.json();
       const newDream: Dream = {
         id: Date.now().toString(),
         date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         content: currentTranscript,
         duration: currentDuration,
-        ...result
+        ...result,
       };
-
-      setCurrentDream(newDream);
+      try {
+        const saved = await fetch(apiUrl('/api/dreams'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newDream),
+        });
+        const savedDream = await saved.json();
+        setCurrentDream(savedDream);
+      } catch {
+        setCurrentDream(newDream);
+      }
     } catch (error) {
-      console.error("Analysis failed:", error);
-      setCurrentDream({
-        ...MOCK_DREAM,
-        id: Date.now().toString(),
-        duration: currentDuration
-      });
+      console.error('Analysis failed:', error);
+      const fallback = { ...MOCK_DREAM, id: Date.now().toString(), duration: currentDuration };
+      try {
+        const saved = await fetch(apiUrl('/api/dreams'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fallback) });
+        const savedDream = await saved.json();
+        setCurrentDream(savedDream);
+      } catch {
+        setCurrentDream(fallback);
+      }
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleSaveDream = async () => {
-    if (!currentDream) return;
-
+  const handleUpdateAstrology = async (astrologyProfile: AstrologyProfile) => {
+    const updated = { ...user, astrologyProfile };
+    setUser(updated);
     try {
-      await fetch(apiUrl('/api/dreams'), {
+      await fetch(apiUrl('/api/user/profile'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentDream)
+        body: JSON.stringify(updated)
       });
-      setCurrentScreen('dreams-list');
-    } catch (error) {
-      console.error("Failed to save dream:", error);
-      setCurrentScreen('dreams-list');
+    } catch (e) {
+      console.error("Failed to save astrology profile", e);
     }
+  };
+
+  const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    try {
+      await fetch(apiUrl('/api/user/profile'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+    } catch (e) {
+      console.error("Failed to update user profile", e);
+    }
+  };
+
+  const handleSaveDream = async (emotionTag?: EmotionTag, isLucid?: boolean, isFavourite?: boolean) => {
+    if (!currentDream) return;
+    // Dream was already auto-saved on analysis — just patch the tags
+    try {
+      await fetch(apiUrl(`/api/dreams/${currentDream.id}`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emotionTag, isLucid, isFavourite })
+      });
+    } catch (error) {
+      console.error("Failed to update dream tags:", error);
+    }
+    setCurrentScreen('dreams-list');
   };
 
   const renderScreen = () => {
@@ -244,9 +211,12 @@ export default function App() {
       case 'whisper':
         return <Whisper onSend={handleSendVoiceNote} />;
       case 'insights':
-        return <Insights synthesis={weeklySynthesis} onGenerate={handleGenerateSynthesis} isGenerating={isSynthesizing} />;
+        return <Insights synthesis={weeklySynthesis} onGenerate={handleGenerateSynthesis} isGenerating={isSynthesizing} user={user} />;
       case 'dream-detail':
-        return <DreamDetail dream={currentDream || MOCK_DREAM} />;
+        return <DreamDetail dream={currentDream || MOCK_DREAM} onAskOracle={dream => {
+          setMirrorInitialDream(dream);
+          setCurrentScreen('mirror');
+        }} />;
       case 'dreams-list':
         return (
           <DreamsList
@@ -254,14 +224,19 @@ export default function App() {
               setCurrentDream(dream);
               setCurrentScreen('dream-detail');
             }}
+            onGoToWhisper={() => setCurrentScreen('whisper')}
           />
         );
       case 'analysis':
         return currentDream ? <Analysis dream={currentDream} onSave={handleSaveDream} /> : null;
+      case 'mirror':
+        return <Mirror user={user} initialDream={mirrorInitialDream} onReady={() => setMirrorInitialDream(null)} />;
       case 'transcription':
         return <Transcription transcript={currentTranscript} onAnalyze={handleAnalyzeTranscript} />;
       case 'you':
-        return <You user={user} onLogout={() => setCurrentScreen('login')} />;
+        return <You user={user} onLogout={() => setCurrentScreen('login')} onUpdateAstrology={handleUpdateAstrology} onUpdateProfile={handleUpdateProfile} />;
+      case 'sleep':
+        return <Sleep user={user} />;
       default:
         return <Login onLogin={handleLogin} />;
     }
@@ -295,6 +270,12 @@ export default function App() {
                 : 'dreams-list'
             )
       };
+    }
+    if (currentScreen === 'mirror') {
+      return { showTopNav: true, showBottomNav: true, title: 'The Mirror' };
+    }
+    if (currentScreen === 'sleep') {
+      return { showTopNav: true, showBottomNav: true };
     }
     return { showTopNav: true, showBottomNav: true };
   };

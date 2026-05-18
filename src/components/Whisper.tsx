@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Send, RotateCcw, MicOff, Moon } from 'lucide-react';
+import { Mic, Send, RotateCcw, MicOff, Moon, PenLine } from 'lucide-react';
 
 interface WhisperProps {
   onSend: (duration: number, transcript: string) => void;
 }
 
 type State = 'idle' | 'recording' | 'done';
+type Mode = 'voice' | 'text';
 
 export default function Whisper({ onSend }: WhisperProps) {
   const [state, setState] = useState<State>('idle');
+  const [mode, setMode] = useState<Mode>('voice');
   const [timer, setTimer] = useState(0);
   const [transcript, setTranscript] = useState('');
+  const [textInput, setTextInput] = useState('');
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [intention, setIntention] = useState('');
+  const [showIntention, setShowIntention] = useState(false);
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const finalTranscriptRef = useRef('');
@@ -85,8 +90,30 @@ export default function Whisper({ onSend }: WhisperProps) {
   };
 
   const handleSend = () => {
-    const finalText = transcript.trim() || "The dream slipped away before I could catch it...";
+    let finalText: string;
+    if (mode === 'text') {
+      finalText = textInput.trim() || "The dream slipped away before I could catch it...";
+    } else {
+      finalText = transcript.trim() || "The dream slipped away before I could catch it...";
+    }
+    if (intention.trim()) {
+      finalText += `\n\n[Tonight's intention: ${intention.trim()}]`;
+    }
     onSend(timer, finalText);
+  };
+
+  const handleSwitchToText = () => {
+    setMode('text');
+    setState('idle');
+    finalTranscriptRef.current = '';
+    setTranscript('');
+    setTimer(0);
+  };
+
+  const handleSwitchToVoice = () => {
+    setMode('voice');
+    setState('idle');
+    setTextInput('');
   };
 
   const formatTime = (s: number) => {
@@ -94,6 +121,9 @@ export default function Whisper({ onSend }: WhisperProps) {
     const sec = (s % 60).toString().padStart(2, '0');
     return `${m}:${sec}`;
   };
+
+  const isIdle = state === 'idle' && mode === 'voice';
+  const isTextMode = mode === 'text';
 
   return (
     <div className="min-h-full flex flex-col px-6 py-10 relative overflow-hidden">
@@ -112,7 +142,9 @@ export default function Whisper({ onSend }: WhisperProps) {
           Whisper your<br />night landscape
         </h2>
         <p className="text-on-surface-variant/60 text-sm font-sans mt-3 max-w-xs mx-auto">
-          {state === 'idle'
+          {isTextMode
+            ? 'Write everything you remember'
+            : state === 'idle'
             ? 'Speak freely — describe everything you remember'
             : state === 'recording'
             ? 'Recording... speak at your own pace'
@@ -120,162 +152,240 @@ export default function Whisper({ onSend }: WhisperProps) {
         </p>
       </motion.div>
 
-      {/* Waveform visualizer */}
-      <div className="w-full flex justify-center mb-8">
-        <div className="flex items-end gap-[3px] h-16">
-          {[...Array(36)].map((_, i) => (
-            <motion.div
-              key={i}
-              animate={state === 'recording' ? {
-                height: [8, Math.random() * 52 + 8, 8],
-              } : {
-                height: [4, 8, 4],
-              }}
-              transition={state === 'recording' ? {
-                duration: 0.4 + (i % 5) * 0.08,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: i * 0.02,
-              } : {
-                duration: 2.5,
-                repeat: Infinity,
-                delay: i * 0.06,
-                ease: 'easeInOut',
-              }}
-              className={`w-1 rounded-full transition-colors duration-500 ${
-                state === 'recording'
-                  ? 'bg-primary shadow-[0_0_6px_rgba(168,133,238,0.6)]'
-                  : 'bg-on-surface-variant/15'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Live transcript */}
-      <AnimatePresence>
-        {(state === 'recording' || state === 'done') && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8 mx-auto w-full max-w-md"
-          >
-            <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 relative">
-              <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                {state === 'recording' && (
-                  <motion.div
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                    className="w-2 h-2 rounded-full bg-primary"
-                  />
-                )}
-                <span className="text-[9px] uppercase tracking-wider text-on-surface-variant/40">
-                  {state === 'recording' ? 'Live' : 'Captured'}
-                </span>
-              </div>
-              <p className="font-serif text-sm text-on-surface/80 leading-relaxed italic pr-16 min-h-[3rem]">
-                {transcript || (
-                  <span className="text-on-surface-variant/30">Your words will appear here...</span>
-                )}
-              </p>
+      {/* Voice mode */}
+      {!isTextMode && (
+        <>
+          {/* Waveform visualizer */}
+          <div className="w-full flex justify-center mb-8">
+            <div className="flex items-end gap-[3px] h-16">
+              {[...Array(36)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={state === 'recording' ? {
+                    height: [8, Math.random() * 52 + 8, 8],
+                  } : {
+                    height: [4, 8, 4],
+                  }}
+                  transition={state === 'recording' ? {
+                    duration: 0.4 + (i % 5) * 0.08,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    delay: i * 0.02,
+                  } : {
+                    duration: 2.5,
+                    repeat: Infinity,
+                    delay: i * 0.06,
+                    ease: 'easeInOut',
+                  }}
+                  className={`w-1 rounded-full transition-colors duration-500 ${
+                    state === 'recording'
+                      ? 'bg-primary shadow-[0_0_6px_rgba(168,133,238,0.6)]'
+                      : 'bg-on-surface-variant/15'
+                  }`}
+                />
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
 
-      {/* Record controls */}
-      <div className="flex flex-col items-center gap-6 mb-10">
-
-        {/* Ripples + Button */}
-        <div className="relative flex items-center justify-center">
+          {/* Live transcript */}
           <AnimatePresence>
-            {state === 'recording' && (
-              <>
-                <motion.div
-                  key="ripple1"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1.6, opacity: 0.08 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-                  className="absolute w-36 h-36 bg-primary rounded-full"
-                />
-                <motion.div
-                  key="ripple2"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 2.2, opacity: 0.04 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 3, repeat: Infinity, delay: 0.6, ease: 'easeOut' }}
-                  className="absolute w-36 h-36 bg-primary rounded-full"
-                />
-              </>
+            {(state === 'recording' || state === 'done') && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-8 mx-auto w-full max-w-md"
+              >
+                <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 relative">
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {state === 'recording' && (
+                      <motion.div
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full bg-primary"
+                      />
+                    )}
+                    <span className="text-[9px] uppercase tracking-wider text-on-surface-variant/40">
+                      {state === 'recording' ? 'Live' : 'Captured'}
+                    </span>
+                  </div>
+                  <p className="font-serif text-sm text-on-surface/80 leading-relaxed italic pr-16 min-h-[3rem]">
+                    {transcript || (
+                      <span className="text-on-surface-variant/30">Your words will appear here...</span>
+                    )}
+                  </p>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
 
-          <motion.button
-            onClick={state === 'recording' ? stopRecording : state === 'idle' ? startRecording : undefined}
-            whileTap={{ scale: 0.93 }}
-            className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
-              state === 'recording'
-                ? 'bg-primary scale-110 shadow-[0_0_32px_rgba(168,133,238,0.4)]'
-                : state === 'done'
-                ? 'bg-surface-container-highest opacity-50 cursor-default'
-                : 'bg-gradient-to-br from-primary to-primary-container hover:scale-105'
-            }`}
-          >
-            {state === 'recording'
-              ? <MicOff size={36} className="text-surface animate-pulse" />
-              : <Mic size={36} className="text-surface" />
-            }
-          </motion.button>
-        </div>
+          {/* Record controls */}
+          <div className="flex flex-col items-center gap-6 mb-6">
 
-        {/* Timer */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="font-mono text-2xl text-primary font-bold tracking-widest tabular-nums">
-            {formatTime(timer)}
-          </span>
-          <span className="text-on-surface-variant/50 text-xs uppercase tracking-wider">
-            {state === 'idle' ? 'Tap to begin' : state === 'recording' ? 'Tap to stop' : 'Recording complete'}
-          </span>
-        </div>
+            {/* Ripples + Button */}
+            <div className="relative flex items-center justify-center">
+              <AnimatePresence>
+                {state === 'recording' && (
+                  <>
+                    <motion.div
+                      key="ripple1"
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1.6, opacity: 0.08 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                      className="absolute w-36 h-36 bg-primary rounded-full"
+                    />
+                    <motion.div
+                      key="ripple2"
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 2.2, opacity: 0.04 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 3, repeat: Infinity, delay: 0.6, ease: 'easeOut' }}
+                      className="absolute w-36 h-36 bg-primary rounded-full"
+                    />
+                  </>
+                )}
+              </AnimatePresence>
 
-        {/* Action buttons after recording */}
-        <AnimatePresence>
-          {state === 'done' && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="flex items-center gap-4 w-full max-w-xs"
-            >
-              <button
-                onClick={handleReset}
-                className="flex-1 h-12 flex items-center justify-center gap-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-container-highest transition-all text-xs uppercase tracking-wider font-medium"
+              <motion.button
+                onClick={state === 'recording' ? stopRecording : state === 'idle' ? startRecording : undefined}
+                whileTap={{ scale: 0.93 }}
+                className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
+                  state === 'recording'
+                    ? 'bg-primary scale-110 shadow-[0_0_32px_rgba(168,133,238,0.4)]'
+                    : state === 'done'
+                    ? 'bg-surface-container-highest opacity-50 cursor-default'
+                    : 'bg-gradient-to-br from-primary to-primary-container hover:scale-105'
+                }`}
               >
-                <RotateCcw size={15} />
-                <span>Redo</span>
-              </button>
-              <button
-                onClick={handleSend}
-                className="flex-[2] h-12 flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-primary to-primary-container text-surface font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                <Send size={15} />
-                <span>Analyse Dream</span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {state === 'recording'
+                  ? <MicOff size={36} className="text-surface animate-pulse" />
+                  : <Mic size={36} className="text-surface" />
+                }
+              </motion.button>
+            </div>
 
-        {/* No speech API warning */}
-        {!speechSupported && (
-          <div className="text-center text-on-surface-variant/60 text-xs max-w-xs">
-            <MicOff size={14} className="inline mr-1" />
-            Voice recording isn't supported in this browser. Try Chrome or Edge.
+            {/* Timer */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="font-mono text-2xl text-primary font-bold tracking-widest tabular-nums">
+                {formatTime(timer)}
+              </span>
+              <span className="text-on-surface-variant/50 text-xs uppercase tracking-wider">
+                {state === 'idle' ? 'Tap to begin' : state === 'recording' ? 'Tap to stop' : 'Recording complete'}
+              </span>
+            </div>
+
+            {/* Action buttons after recording */}
+            <AnimatePresence>
+              {state === 'done' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="flex items-center gap-4 w-full max-w-xs"
+                >
+                  <button
+                    onClick={handleReset}
+                    className="flex-1 h-12 flex items-center justify-center gap-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary hover:bg-surface-container-highest transition-all text-xs uppercase tracking-wider font-medium"
+                  >
+                    <RotateCcw size={15} />
+                    <span>Redo</span>
+                  </button>
+                  <button
+                    onClick={handleSend}
+                    className="flex-[2] h-12 flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-primary to-primary-container text-surface font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    <Send size={15} />
+                    <span>Analyse Dream</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* No speech API warning */}
+            {!speechSupported && (
+              <div className="text-center text-on-surface-variant/60 text-xs max-w-xs">
+                <MicOff size={14} className="inline mr-1" />
+                Voice recording isn't supported in this browser. Try Chrome or Edge.
+              </div>
+            )}
+
+            {/* Write instead link */}
+            {state === 'idle' && (
+              <button
+                onClick={handleSwitchToText}
+                className="flex items-center gap-1.5 text-on-surface-variant/40 hover:text-primary text-xs transition-colors"
+              >
+                <PenLine size={12} />
+                <span>Or write your dream instead</span>
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {/* Text mode */}
+      {isTextMode && (
+        <div className="flex flex-col gap-5 mb-6">
+          <textarea
+            value={textInput}
+            onChange={e => setTextInput(e.target.value)}
+            placeholder="Describe your dream in your own words..."
+            className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 text-sm font-serif text-on-surface/90 placeholder-on-surface-variant/30 focus:outline-none focus:border-primary/30 transition-colors leading-relaxed resize-none"
+            style={{ minHeight: '140px' }}
+          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSwitchToVoice}
+              className="flex items-center gap-1.5 text-on-surface-variant/40 hover:text-primary text-xs transition-colors"
+            >
+              <Mic size={12} />
+              <span>Back to voice</span>
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={!textInput.trim()}
+              className="ml-auto flex items-center gap-2 px-5 h-11 rounded-full bg-gradient-to-br from-primary to-primary-container text-surface font-bold text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Send size={14} />
+              <span>Analyse Dream</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tonight's intention — shown when idle (either mode) */}
+      {(isIdle || isTextMode) && (
+        <div className="mb-6 w-full max-w-md mx-auto">
+          <button
+            onClick={() => setShowIntention(v => !v)}
+            className="flex items-center gap-2 text-on-surface-variant/35 hover:text-on-surface-variant/60 text-xs transition-colors w-full"
+          >
+            <Moon size={12} className="text-primary/40" />
+            <span className="uppercase tracking-wider">Tonight's intention</span>
+            <span className="ml-auto text-[10px] opacity-60">{showIntention ? '−' : '+'}</span>
+          </button>
+          <AnimatePresence>
+            {showIntention && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 10 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <input
+                  value={intention}
+                  onChange={e => setIntention(e.target.value)}
+                  placeholder="e.g. I want to dream about clarity..."
+                  className="w-full bg-surface-container-low border border-outline-variant/10 rounded-xl py-3 px-4 text-xs text-on-surface/80 placeholder-on-surface-variant/30 focus:outline-none focus:border-primary/20 transition-colors"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Bottom info cards */}
       <div className="mt-auto grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
