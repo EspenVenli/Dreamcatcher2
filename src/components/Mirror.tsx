@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Moon, ChevronRight } from 'lucide-react';
+import { Sparkles, Moon } from 'lucide-react';
 import { UserProfile, Dream } from '../types';
 import { apiUrl } from '../api';
 
@@ -206,42 +206,25 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-6"
+            className="flex flex-col items-center justify-center h-full gap-6 text-center"
           >
-            {/* Orb + intro */}
-            <div className="flex flex-col items-center gap-4 text-center pt-4">
-              <motion.div
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative"
-              >
-                <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
-                  <Sparkles size={24} className="text-primary" />
-                </div>
-              </motion.div>
-              <div className="space-y-1 max-w-xs">
-                <p className="font-serif text-base text-on-surface/80 italic">"What do you wish to understand?"</p>
-                <p className="text-xs text-on-surface/35 leading-relaxed">Tap a question or write your own below</p>
+            <motion.div
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
+                <Sparkles size={28} className="text-primary" />
               </div>
-            </div>
-
-            {/* Static question list */}
-            <div className="space-y-2">
-              {questions.map((q, i) => (
-                <motion.button
-                  key={q}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                  onClick={() => { setInput(q); setTimeout(() => handleSend(q), 80); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-container-high/60 border border-outline-variant/15 hover:border-primary/30 hover:bg-primary/5 transition-all group text-left"
-                >
-                  <span className="text-primary/40 font-mono text-xs w-4 flex-shrink-0">✦</span>
-                  <span className="flex-1 text-sm text-on-surface/70 group-hover:text-on-surface/90 transition-colors leading-snug">{q}</span>
-                  <ChevronRight size={14} className="text-on-surface/20 group-hover:text-primary/50 transition-colors flex-shrink-0" />
-                </motion.button>
-              ))}
+            </motion.div>
+            <div className="space-y-2 max-w-xs">
+              <p className="font-serif text-lg text-on-surface/80 italic">
+                "What do you wish to understand?"
+              </p>
+              <p className="text-xs text-on-surface/40 leading-relaxed">
+                Ask anything about your dreams, patterns, or inner life. The Mirror sees only you.
+              </p>
             </div>
           </motion.div>
         )}

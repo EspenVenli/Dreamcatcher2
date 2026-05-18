@@ -64,50 +64,60 @@ export default function Layout({
           <button
             onClick={() => onNavigate('whisper')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'whisper' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'whisper' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <Mic size={22} className="mb-1" />
+            <Mic size={20} className="mb-1" />
             <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Whisper</span>
           </button>
 
           <button
             onClick={() => onNavigate('dreams-list')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'dreams-list' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'dreams-list' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <BookOpen size={22} className="mb-1" />
+            <BookOpen size={20} className="mb-1" />
             <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Dreams</span>
           </button>
 
           <button
             onClick={() => onNavigate('insights')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'insights' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'insights' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <BarChart2 size={22} className="mb-1" />
+            <BarChart2 size={20} className="mb-1" />
             <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Insights</span>
           </button>
 
           <button
             onClick={() => onNavigate('mirror')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'mirror' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'mirror' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <Eye size={22} className="mb-1" />
+            <Eye size={20} className="mb-1" />
             <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Mirror</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('sleep')}
+            className={`flex flex-col items-center justify-center transition-colors ${
+              currentScreen === 'sleep' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
+            }`}
+          >
+            <Moon size={20} className="mb-1" />
+            <span className="font-sans text-[9px] font-medium tracking-wider uppercase">Sleep</span>
           </button>
 
           <button
             onClick={() => onNavigate('you')}
             className={`flex flex-col items-center justify-center transition-colors ${
-              currentScreen === 'you' || currentScreen === 'sleep' ? 'text-primary bg-primary/10 rounded-full px-4 py-1' : 'text-on-surface/40 hover:text-primary/80'
+              currentScreen === 'you' ? 'text-primary bg-primary/10 rounded-full px-3 py-1' : 'text-on-surface/40 hover:text-primary/80'
             }`}
           >
-            <User size={22} className="mb-1" />
+            <User size={20} className="mb-1" />
             <span className="font-sans text-[9px] font-medium tracking-wider uppercase">You</span>
           </button>
         </nav>
