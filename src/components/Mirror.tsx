@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Moon } from 'lucide-react';
+import { Sparkles, Moon, ArrowRight } from 'lucide-react';
 import { UserProfile, Dream } from '../types';
 import { apiUrl } from '../api';
 
@@ -10,70 +10,26 @@ interface Message {
   text: string;
 }
 
-type Category = 'all' | 'symbols' | 'emotions' | 'patterns' | 'future';
-
-const CATEGORY_QUESTIONS: Record<Category, string[]> = {
-  all: [
-    'What has been shifting in my dreams this month?',
-    'What does my chart say about my recent dreams?',
-    'What recurring theme should I pay attention to?',
-  ],
-  symbols: [
-    'What does water keep symbolising in my dreams?',
-    'Why do I dream about running or being chased?',
-    'What does my childhood home represent?',
-    'Why do certain people keep appearing in my dreams?',
-  ],
-  emotions: [
-    'What emotions am I processing in my sleep?',
-    'Why do my dreams leave me feeling anxious?',
-    'What is the fear in my dreams trying to tell me?',
-    'Why do I wake up sad even from neutral dreams?',
-  ],
-  patterns: [
-    'Are there patterns in when I have vivid dreams?',
-    'What themes repeat across my last month of dreams?',
-    'Do my dreams reflect what is happening in my waking life?',
-    'How has my dream life changed over time?',
-  ],
-  future: [
-    'What might my dreams be preparing me for?',
-    'What intention should I set before sleeping tonight?',
-    'What is my subconscious trying to work through?',
-    'What would it mean to follow what my dreams are pointing at?',
-  ],
-};
-
 interface MirrorProps {
   user: UserProfile | null;
   initialDream?: Dream | null;
   onReady?: () => void;
 }
 
-const DEFAULT_QUESTIONS = [
-  'Why do I keep dreaming about water?',
-  'What has been shifting in my dreams this month?',
-  'What does my chart say about my recent dreams?',
-  'What emotions am I processing in my sleep?',
-  'Why do I dream about running?',
-  'What recurring theme should I pay attention to?',
-];
-
-// Static starfield dots (pre-computed so they don't re-render)
+// Static starfield (pre-computed)
 const STARS = Array.from({ length: 60 }, (_, i) => ({
   id: i,
   top:  `${(i * 137.508) % 100}%`,
   left: `${(i * 97.3)   % 100}%`,
   size: i % 5 === 0 ? 2 : 1,
-  opacity: 0.15 + (i % 7) * 0.07,
+  opacity: 0.12 + (i % 7) * 0.06,
 }));
 
 export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [dreams, setDreams] = useState<Dream[]>([]);
+  const [recentDream, setRecentDream] = useState<Dream | null>(null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<Category>('all');
   const bottomRef = useRef<HTMLDivElement>(null);
   const didAutoAsk = useRef(false);
 
@@ -81,14 +37,15 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Fetch most recent dream for context card
   useEffect(() => {
     fetch(apiUrl('/api/dreams'))
       .then(r => r.json())
-      .then(d => setDreams(Array.isArray(d) ? d : []))
+      .then(d => { if (Array.isArray(d) && d.length > 0) setRecentDream(d[0]); })
       .catch(() => {});
   }, []);
 
-  // Auto-ask about a dream when navigated from DreamDetail
+  // Auto-ask when navigated from DreamDetail
   useEffect(() => {
     if (initialDream && !didAutoAsk.current) {
       didAutoAsk.current = true;
@@ -101,18 +58,6 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDream]);
-
-  // Personalise the "all" questions based on top dream symbol
-  const questions = useMemo(() => {
-    const base = CATEGORY_QUESTIONS[activeCategory];
-    if (activeCategory !== 'all' || dreams.length === 0) return base;
-    const allSymbols = dreams.flatMap(d => d.symbols ?? []);
-    const symbolCount: Record<string, number> = {};
-    allSymbols.forEach(s => { symbolCount[s] = (symbolCount[s] ?? 0) + 1; });
-    const topSymbol = Object.entries(symbolCount).sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (!topSymbol) return base;
-    return [`Why do I keep dreaming about ${topSymbol.toLowerCase()}?`, ...base.slice(1)];
-  }, [dreams, activeCategory]);
 
   async function handleSend(text?: string) {
     const msg = (text ?? input).trim();
@@ -145,26 +90,18 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
     }
   }
 
-
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] pt-6 relative overflow-hidden">
 
-      {/* Starfield background */}
+      {/* Starfield */}
       <div className="absolute inset-0 pointer-events-none">
         {STARS.map(star => (
           <div
             key={star.id}
             className="absolute rounded-full bg-white"
-            style={{
-              top: star.top,
-              left: star.left,
-              width: star.size,
-              height: star.size,
-              opacity: star.opacity,
-            }}
+            style={{ top: star.top, left: star.left, width: star.size, height: star.size, opacity: star.opacity }}
           />
         ))}
-        {/* Subtle radial glow in center */}
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(168,133,238,0.06) 0%, transparent 70%)' }}
@@ -172,63 +109,85 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
       </div>
 
       {/* Header */}
-      <div className="px-6 pb-3 flex-shrink-0 relative z-10">
+      <div className="px-6 pb-4 flex-shrink-0 relative z-10">
         <span className="text-primary font-sans text-xs uppercase tracking-widest opacity-70">Your oracle</span>
         <h1 className="font-serif text-4xl text-on-surface leading-tight mt-1">
           The <span className="italic text-primary" style={{ textShadow: '0 0 20px rgba(168,133,238,0.4)' }}>Mirror</span>
         </h1>
       </div>
 
-      {/* Category picker — hidden once chat starts */}
-      {messages.length === 0 && (
-        <div className="px-6 pb-3 flex-shrink-0 relative z-10">
-          <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
-            {(['all', 'symbols', 'emotions', 'patterns', 'future'] as Category[]).map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-[0.12em] font-medium transition-all border ${
-                  activeCategory === cat
-                    ? 'bg-primary/20 border-primary/40 text-primary'
-                    : 'bg-surface-container-high/60 border-outline-variant/10 text-on-surface/40 hover:text-on-surface/70'
-                }`}
-              >
-                {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Messages */}
+      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-6 space-y-5 pb-4 relative z-10">
+
+        {/* Empty state */}
         {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center h-full gap-6 text-center"
+            className="flex flex-col items-center gap-8 pt-4"
           >
-            <motion.div
-              animate={{ scale: [1, 1.08, 1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
-                <Sparkles size={28} className="text-primary" />
+            {/* Orb */}
+            <div className="flex flex-col items-center gap-4 text-center">
+              <motion.div
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-150" />
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/20 border border-primary/20 flex items-center justify-center">
+                  <Sparkles size={28} className="text-primary" />
+                </div>
+              </motion.div>
+              <div className="space-y-1.5 max-w-xs">
+                <p className="font-serif text-lg text-on-surface/80 italic">
+                  "What do you wish to understand?"
+                </p>
+                <p className="text-xs text-on-surface/35 leading-relaxed">
+                  The Mirror sees only you — your dreams, your patterns, your inner life.
+                </p>
               </div>
-            </motion.div>
-            <div className="space-y-2 max-w-xs">
-              <p className="font-serif text-lg text-on-surface/80 italic">
-                "What do you wish to understand?"
-              </p>
-              <p className="text-xs text-on-surface/40 leading-relaxed">
-                Ask anything about your dreams, patterns, or inner life. The Mirror sees only you.
-              </p>
             </div>
+
+            {/* Recent dream context card — only if a dream exists */}
+            {recentDream && (
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                onClick={() => {
+                  const q = `Tell me about my dream "${recentDream.title}" from ${recentDream.date}${recentDream.symbols?.length ? `. It involved: ${recentDream.symbols.slice(0, 3).join(', ')}.` : '.'}`;
+                  setInput(q);
+                  setTimeout(() => handleSend(q), 80);
+                }}
+                className="w-full group relative rounded-2xl border border-primary/15 bg-surface-container-high/50 backdrop-blur-sm p-5 text-left hover:border-primary/30 hover:bg-primary/5 transition-all"
+              >
+                {/* subtle glow */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/4 to-transparent pointer-events-none" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="space-y-1.5 min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-primary/50 font-sans">
+                      Your last dream
+                    </p>
+                    <p className="font-serif text-base text-on-surface/80 italic leading-snug truncate">
+                      {recentDream.title}
+                    </p>
+                    {recentDream.symbols && recentDream.symbols.length > 0 && (
+                      <p className="text-[11px] text-on-surface/35 font-sans">
+                        {recentDream.symbols.slice(0, 4).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-primary/20 transition-colors">
+                    <ArrowRight size={14} className="text-primary/60 group-hover:text-primary transition-colors" />
+                  </div>
+                </div>
+              </motion.button>
+            )}
           </motion.div>
         )}
 
+        {/* Messages */}
         <AnimatePresence>
           {messages.map(msg => (
             <motion.div
@@ -253,12 +212,9 @@ export default function Mirror({ user, initialDream, onReady }: MirrorProps) {
           ))}
         </AnimatePresence>
 
+        {/* Typing indicator */}
         {loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-start"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
             <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/20 flex items-center justify-center flex-shrink-0 mr-2.5 mt-0.5">
               <Sparkles size={13} className="text-primary" />
             </div>
